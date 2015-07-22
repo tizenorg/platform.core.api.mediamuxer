@@ -310,8 +310,6 @@ void *_write_video_data()
 				return (void *)status;
 			}
 
-
-			g_print("V write sample call. packet add:%x\n", (unsigned int)vid_pkt);
 			mediamuxer_write_sample(myMuxer, track_index_vid, vid_pkt);
 
 			media_packet_destroy(vid_pkt);
@@ -427,7 +425,7 @@ void *_write_audio_data()
 			}
 
 			if (media_packet_get_buffer_size(aud_pkt, &ns)) {
-				g_print("unable to set the buffer size actual =%d, fixed %d\n", size, (int)&ns);
+				g_print("unable to set the buffer size actual =%d, fixed %d\n", size, (int)ns);
 				return (void *)status;
 			}
 
@@ -457,8 +455,6 @@ void *_write_audio_data()
 				return (void *)status;
 			}
 
-
-			g_print("A write sample call. packet add:%x\n", (unsigned int)aud_pkt);
 			mediamuxer_write_sample(myMuxer, track_index_aud, aud_pkt);
 
 			media_packet_destroy(aud_pkt);
