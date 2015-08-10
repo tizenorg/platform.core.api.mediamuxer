@@ -55,7 +55,7 @@ int mx_create(MMHandleType *muxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 
 	new_muxer->muxer_ops = pOps;
-	MX_I("mx_create allocating new_demuxer->demuxer_ops %p:\n",
+	MX_I("mx_create allocating new_muxer->muxer_ops %p:\n",
 	     new_muxer->muxer_ops);
 	pOps->n_size = sizeof(media_port_muxer_ops);
 	/* load ini files */
@@ -108,6 +108,24 @@ int mx_add_track(MMHandleType mediamuxer, media_format_h media_format, int *trac
 	ret = pOps->add_track(mx_handle->mxport_handle, media_format, track_index);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
 	                               "error while adding track");
+	MEDIAMUXER_FLEAVE();
+	return ret;
+ERROR:
+	MEDIAMUXER_FLEAVE();
+	return ret;
+}
+
+int mx_prepare(MMHandleType mediamuxer)
+{
+	int ret = MX_ERROR_NONE;
+	mx_handle_t *mx_handle = (mx_handle_t *)(mediamuxer);
+	MEDIAMUXER_FENTER();
+	MEDIAMUXER_CHECK_NULL(mx_handle);
+	media_port_muxer_ops *pOps = mx_handle->muxer_ops;
+	MEDIAMUXER_CHECK_NULL(pOps);
+	ret = pOps->prepare(mx_handle->mxport_handle);
+	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
+	                               "error while preparing");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -214,6 +232,24 @@ int mx_stop(MMHandleType mediamuxer)
 	media_port_muxer_ops *pOps = mx_handle->muxer_ops;
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->stop(mx_handle->mxport_handle);
+	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
+	                               "error while stopping");
+	MEDIAMUXER_FLEAVE();
+	return ret;
+ERROR:
+	MEDIAMUXER_FLEAVE();
+	return ret;
+}
+
+int mx_unprepare(MMHandleType mediamuxer)
+{
+	int ret = MX_ERROR_NONE;
+	mx_handle_t *mx_handle = (mx_handle_t *)(mediamuxer);
+	MEDIAMUXER_FENTER();
+	MEDIAMUXER_CHECK_NULL(mx_handle);
+	media_port_muxer_ops *pOps = mx_handle->muxer_ops;
+	MEDIAMUXER_CHECK_NULL(pOps);
+	ret = pOps->unprepare(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
 	                               "error while destroying");
 	MEDIAMUXER_FLEAVE();

@@ -64,7 +64,7 @@ extern "C" {
 
     @par
     Most of functions which change muxer state work as synchronous. But,
-    mx_start() should be used asynchronously. Both mx_pause() and mx__resume()
+    mx_prepare() should be used asynchronously. Both mx_pause() and mx__resume()
     should also be used asynchronously in the case of streaming data.
     So, application have to confirm the result of those APIs through message
     callback function.
@@ -332,11 +332,13 @@ typedef struct _media_port_muxer_ops {
 	/* Add new ops at the end of structure, no order change */
 	int (*set_data_sink)(MMHandleType pHandle, char *uri, mediamuxer_output_format_e format);
 	int (*add_track)(MMHandleType pHandle, media_format_h media_format, int *track_index);
+	int (*prepare)(MMHandleType pHandle);
 	int (*start)(MMHandleType pHandle);
 	int (*write_sample)(MMHandleType pHandle, int track_index, media_packet_h inbuf);
 	int (*close_track)(MMHandleType pHandle, int track_index);
 	int (*pause)(MMHandleType pHandle);
 	int (*resume)(MMHandleType pHandle);
+	int (*unprepare)(MMHandleType pHandle);
 	int (*stop)(MMHandleType pHandle);
 	int (*destroy)(MMHandleType pHandle);
 	int (*set_error_cb)(MMHandleType pHandle, mx_error_cb callback, void* user_data);
@@ -422,6 +424,26 @@ int mx_destroy(MMHandleType muxer);
  *
  * @par Example
  * @code
+if (mx_prepare(g_muxer) != MX_ERROR_NONE)
+{
+    MX_E("failed to prepare muxer\n");
+}
+ * @endcode
+ */
+int mx_prepare(MMHandleType muxer);
+
+/**
+ * This function starts the muxer object. \n
+ * For GST-port, this function sets the pipeline to playing
+ *
+ * @param   muxer     [in]    Handle of muxer
+ *
+ * @return  This function returns zero on success, or negative value with error
+		code.
+ * @see     mx_stop
+ *
+ * @par Example
+ * @code
 if (mx_start(g_muxer) != MX_ERROR_NONE)
 {
     MX_E("failed to start muxer\n");
@@ -481,7 +503,7 @@ int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inb
  *
  * @return  This function returns zero on success, or negative value with error
                 code.
- * @see     mx_stop
+ * @see     mx_unprepare
  *
  * @par Example
  * @code
@@ -494,14 +516,14 @@ if (mx_close_track(g_muxer,1) != MX_ERROR_NONE)
 int mx_close_track(MMHandleType mediamuxer, int track_index);
 
 /**
- * This function stops/un-prepares the muxer object. \n
- * For GST-port, this function unrefs necessary gst elemetns
+ * This function stops the muxer object. \n
+ * For GST-port, this function sets the pipeline to ready
  *
  * @param   muxer     [in]    Handle of muxer
  *
  * @return  This function returns zero on success, or negative value with error
 		code.
- * @see     mx_stop
+ * @see     mx_start
  *
  * @par Example
  * @code
@@ -512,6 +534,26 @@ if (mx_stop(g_muxer) != MX_ERROR_NONE)
  * @endcode
  */
 int mx_stop(MMHandleType mediamuxer);
+
+/**
+ * This function stops/un-prepares the muxer object. \n
+ * For GST-port, this function unrefs necessary gst elemetns
+ *
+ * @param   muxer     [in]    Handle of muxer
+ *
+ * @return  This function returns zero on success, or negative value with error
+		code.
+ * @see     mx_unprepare
+ *
+ * @par Example
+ * @code
+if (mx_unprepare(g_muxer) != MX_ERROR_NONE)
+{
+    MX_E("failed to unprepare muxer\n");
+}
+ * @endcode
+ */
+int mx_unprepare(MMHandleType mediamuxer);
 
 /**
  * This function pauses the muxing operation. \n

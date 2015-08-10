@@ -145,13 +145,13 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_IDLE.
  * @see #media_format_h
  * @see mediamuxer_create()
- * @see mediamuxer_start()
+ * @see mediamuxer_prepare()
  * */
 int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *track_index);
 
 /**
- * @brief Starts the media muxer.
- * @remarks Initiates the necessary parameters, and keeps the muxer ready for writing data.
+ * @brief Prepares the media muxer.
+ * @remarks Initiates the necessary parameters.
  * @since_tizen 3.0
  * @param[in] muxer     The media muxer handle
  * @return @c 0 on success, otherwise a negative error value
@@ -161,6 +161,22 @@ int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *t
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_IDLE.
  * @post The media muxer state will be #MEDIAMUXER_STATE_READY.
  * @see mediamuxer_create()
+ * @see mediamuxer_unprepare()
+ * */
+int mediamuxer_prepare(mediamuxer_h muxer);
+
+/**
+ * @brief Starts the media muxer.
+ * @remarks Keeps the muxer ready for writing data.
+ * @since_tizen 3.0
+ * @param[in] muxer     The media muxer handle
+ * @return @c 0 on success, otherwise a negative error value
+ * @retval #MEDIAMUXER_ERROR_NONE Successful
+ * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
+ * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY.
+ * @post The media muxer state will be #MEDIAMUXER_STATE_MUXING.
+ * @see mediamuxer_prepare()
  * @see mediamuxer_stop()
  * */
 int mediamuxer_start(mediamuxer_h muxer);
@@ -175,10 +191,10 @@ int mediamuxer_start(mediamuxer_h muxer);
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
- * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY by calling mediamuxer_start() or
+ * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY by calling mediamuxer_prepare() or
  *      set to #MEDIAMUXER_STATE_PAUSED by calling mediamuxer_pause().
  * @post The media muxer state will be #MEDIAMUXER_STATE_MUXING.
- * @see mediamuxer_start()
+ * @see mediamuxer_prepare()
  * @see mediamuxer_close_track()
  * @see mediamuxer_pause()
  * @see #media_packet_h
@@ -197,7 +213,7 @@ int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h 
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING.
  * @see mediamuxer_write_sample()
  * @see mediamuxer_pause()
- * @see mediamuxer_stop()
+ * @see mediamuxer_unprepare()
  * @see #mediamuxer_error_e
  * */
 int mediamuxer_close_track(mediamuxer_h muxer, int track_index);
@@ -237,21 +253,38 @@ int mediamuxer_resume(mediamuxer_h muxer);
 
 /**
  * @brief Stops the media muxer.
- * @remarks Unrefs the variables created after calling mediamuxer_start().
+ * @remarks Keeps the muxer ready for writing data.
  * @since_tizen 3.0
  * @param[in] muxer     The media muxer handle
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
- * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING by calling mediamuxer_start() or
+ * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING
+ * 	or #MEDIAMUXER_STATE_PAUSED.
+ * @post The media muxer state will be #MEDIAMUXER_STATE_READY.
+ * @see mediamuxer_start()
+ * @see mediamuxer_unprepare()
+ * */
+int mediamuxer_stop(mediamuxer_h muxer);
+
+/**
+ * @brief Unprepares the media muxer.
+ * @remarks Unrefs the variables created after calling mediamuxer_prepare().
+ * @since_tizen 3.0
+ * @param[in] muxer     The media muxer handle
+ * @return @c 0 on success, otherwise a negative error value
+ * @retval #MEDIAMUXER_ERROR_NONE Successful
+ * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
+ * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY or
  *      set to #MEDIAMUXER_STATE_PAUSED by calling mediamuxer_pause().
  * @post The media muxer state will be #MEDIAMUXER_STATE_IDLE.
  * @see mediamuxer_write_sample()
  * @see mediamuxer_pause()
  * @see mediamuxer_destroy()
  * */
-int mediamuxer_stop(mediamuxer_h muxer);
+int mediamuxer_unprepare(mediamuxer_h muxer);
 
 /**
  * @brief Removes the instance of media muxer and clear all its context memory.

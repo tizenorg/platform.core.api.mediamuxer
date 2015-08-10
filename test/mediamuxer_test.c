@@ -24,18 +24,14 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <gst/gst.h>
+#include <inttypes.h>
 #include <mm_error.h>
 #include <mm_debug.h>
 #include "../include/mediamuxer_port.h"
 #include <mediamuxer.h>
 #include <mediamuxer_private.h>
 #include <media_packet_internal.h>
-/* Read encoded medial files locally: encoded A/V files along with info & caps */
-#define H264_FILE video_data
-#define H264_INFO video_extra_info
-#define AAC_FILE audio_data
-#define AAC_INFO  audio_extra_info
 
 /*-----------------------------------------------------------------------
 |    GLOBAL VARIABLE DEFINITIONS:                                       |
@@ -49,22 +45,451 @@ media_format_h media_format_a = NULL;
 
 bool aud_eos = 0;
 bool vid_eos = 0;
-char audio_extra_info[1000];
-char audio_data[1000];
-char video_extra_info[1000];
-char video_data[1000];
+char *aud_caps, *vid_caps;
+char file_mp4[1000];
+bool have_mp4 = false;
+int track_index_vid, track_index_aud;
+
+/* demuxer sturcture */
+typedef struct _CustomData
+{
+	GstElement *pipeline;
+	GstElement *source;
+	GstElement *demuxer;
+	GstElement *audioqueue;
+	GstElement *videoqueue;
+
+	GstElement *audio_appsink;	/* o/p of demuxer */
+	GstElement *video_appsink;
+	GstElement *dummysink;
+
+	char *saveLocation_audio;	/* aac stream */
+	char *saveLocation_video;	/* h264 stream */
+	GMainLoop *loop;
+
+	GTimer *timer;
+} CustomData;
+
+
+/* demuxer helper functions */
+static void _video_app_sink_callback(GstElement *sink, CustomData *data);
+static void _video_app_sink_eos_callback(GstElement *sink, CustomData *data);
+static void _audio_app_sink_eos_callback(GstElement *sink, CustomData *data);
+static void _on_pad_added(GstElement *element, GstPad *pad, CustomData *data);
+static gboolean _bus_call(GstBus *bus, GstMessage *msg, gpointer data);
+
+/* Demuxer audio-appsink buffer receive callback*/
+static void _audio_app_sink_callback(GstElement *sink, CustomData *data)
+{
+	GstBuffer *buffer;
+	media_format_h audfmt;
+	media_packet_h aud_pkt;
+	track_index_aud = 2;	/* track_index=2 for audio */
+	guint8 *dptr;
+	static int count = 0;
+	if (count == 0)
+		g_print("\ngst-1.0 audio\n");
+	GstSample *sample;
+	uint64_t ns;
+	int key;
+	GstMapInfo map;
+	g_signal_emit_by_name(sink, "pull-sample", &sample);
+	buffer = gst_sample_get_buffer(sample);
+	if (buffer) {
+		/* Print a * to indicate a received buffer */
+		g_print("\na%d: ",++count);
+
+		if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
+			if (!GST_BUFFER_FLAG_IS_SET(buffer,GST_BUFFER_FLAG_DELTA_UNIT)) {
+				/* g_print( "  Key Frame  \n"); */
+				key = 1;
+			} else {
+				/* g_print( "  NOT a Key Frame  \n"); */
+				key = 0;
+			}
+
+			if (media_format_create(&audfmt)) {
+				g_print("media_format_create failed\n");
+				return;
+			}
+
+			if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AAC)) {
+				g_print("media_format_set_audio_mime failed\n");
+				return;
+			}
+
+			if (media_packet_create(audfmt, NULL, NULL, &aud_pkt)) {
+				g_print("create audio media_packet failed\n");
+				return;
+			}
+
+			if (media_packet_alloc(aud_pkt)) {
+				g_print("audio media_packet alloc failed\n");
+				return;
+			}
+
+			media_packet_get_buffer_data_ptr(aud_pkt, (void **)&dptr);
+			memcpy((char*)dptr, map.data, map.size);
+
+			if (media_packet_set_buffer_size(aud_pkt, (uint64_t)(map.size))) {
+				g_print("audio set_buffer_size failed\n");
+				return;
+			}
+
+			if (media_packet_get_buffer_size(aud_pkt, &ns)) {
+				g_print("unable to set the buffer size actual =%u, fixed %"PRIu64"\n",map.size,ns);
+				return;
+			}
+
+			g_print(" fixed size %"PRIu64"\n", ns);
+
+			if (media_packet_set_pts(aud_pkt, buffer->pts)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_dts(aud_pkt, buffer->dts)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_duration(aud_pkt, buffer->duration)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_flags(aud_pkt, key)) {
+				g_print("unable to set the flag size\n");
+				return;
+			}
+
+			if (media_packet_set_codec_data(aud_pkt, aud_caps, strlen(aud_caps)+1)) {
+				g_print("unable to set the audio codec data e\n");
+				return;
+			}
+
+			g_print("A write sample call. packet add:%p\n", aud_pkt);
+			mediamuxer_write_sample(myMuxer, track_index_aud, aud_pkt);
+
+			media_packet_destroy(aud_pkt);
+		}
+	}
+}
+
+/* Demuxer video-appsink buffer receive callback*/
+static void _video_app_sink_callback(GstElement *sink, CustomData *data)
+{
+	GstBuffer *buffer;
+	media_format_h vidfmt;
+	media_packet_h vid_pkt;
+	track_index_vid = 1; /* track_index=1 for video */
+	uint64_t ns;
+	static int count = 0;
+	unsigned int vsize;
+	int key;
+	guint8 *dptr;
+	GstMapInfo map;
+	if (count == 0)
+		g_print("\ngst-1.0 Video\n");
+	GstSample *sample;
+	g_signal_emit_by_name(sink, "pull-sample", &sample);
+	buffer = gst_sample_get_buffer(sample);
+
+	if (buffer) {
+		/* Print a * to indicate a received buffer */
+		g_print("v%d: ", ++count);
+
+		g_print("PTS=%llu\n", buffer->pts);
+
+		if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
+			if (media_format_create(&vidfmt)) {
+				g_print("media_format_create failed\n");
+				return;
+			}
+
+			if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H264_SP)) {
+				g_print("media_format_set_vidio_mime failed\n");
+				return;
+			}
+
+			if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
+				/* g_print("Key Frame\n"); */
+				key = 1;
+			} else {
+				/* g_print("NOT a Key Frame\n"); */
+				key = 0;
+			}
+
+			vsize = map.size;
+			media_format_set_video_width(vidfmt, vsize/2+1);
+			media_format_set_video_height(vidfmt, vsize/2+1);
+			/*frame rate is came from the caps filter of demuxer*/
+			if (media_format_set_video_frame_rate(vidfmt, 30)) {
+				g_print("media_format_set_video_frame_rate failed\n");
+				return;
+			}
+
+			if (media_packet_create(vidfmt, NULL, NULL, &vid_pkt)) {
+				g_print("create video media_packet failed\n");
+				return;
+			}
+
+			if (media_packet_alloc(vid_pkt)) {
+				g_print("video media_packet alloc failed\n");
+				return;
+			}
+
+			media_packet_get_buffer_data_ptr(vid_pkt, (void**)&dptr);
+			media_packet_get_buffer_size(vid_pkt, &ns);
+			g_print("set v buf size as %"PRIu64", data size=%d\n", ns, vsize);
+			memcpy((char*)dptr, map.data,map.size);
+
+			if (media_packet_set_buffer_size(vid_pkt, (uint64_t)(map.size))) {
+				g_print("video set_buffer_size failed\n");
+				return;
+			}
+
+			if (media_packet_get_buffer_size(vid_pkt, &ns)) {
+				g_print("unable to set the buffer size actual =%d, fixed %"PRIu64"\n", map.size, ns);
+				return;
+			}
+
+			g_print("fixed size %"PRIu64"\n",ns);
+
+			if (media_packet_set_pts(vid_pkt, buffer->pts)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_dts(vid_pkt, buffer->dts)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_duration(vid_pkt, buffer->duration)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_flags(vid_pkt, key)) {
+				g_print("unable to set the flag size\n");
+				return;
+			}
+			if (media_packet_set_codec_data(vid_pkt, vid_caps, strlen(vid_caps)+1)) {
+				g_print("unable to set the video codec data e\n");
+				return;
+			}
+
+			g_print("A write sample call. packet add:%p\n", vid_pkt);
+			mediamuxer_write_sample(myMuxer, track_index_vid, vid_pkt);
+			media_packet_destroy(vid_pkt);
+		}
+	}
+
+}
+
+/* demuxer video appsink eos callback */
+static void _video_app_sink_eos_callback(GstElement *sink, CustomData *data)
+{
+	mediamuxer_close_track(myMuxer, track_index_vid);
+	g_print("\n video h264 eos reached \n");
+	vid_eos = 1;
+	if (aud_eos == 1)
+		g_main_loop_quit(data->loop);
+}
+
+/* demuxer audio appsink eos callback */
+static void _audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
+{
+	mediamuxer_close_track(myMuxer, track_index_aud);
+	g_print("\n audio AAC eos reached \n");
+	aud_eos = 1;
+	if (vid_eos == 1)
+		g_main_loop_quit(data->loop);
+}
+
+/* demuxer on_pad callback */
+static void _on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
+{
+	GstPadLinkReturn ret;
+	GstPad *sink_pad_audioqueue = gst_element_get_static_pad(data->audioqueue, "sink");
+	GstPad *sink_pad_videoqueue = gst_element_get_static_pad(data->videoqueue, "sink");
+	GstCaps *new_pad_aud_caps = NULL;
+	GstCaps *new_pad_vid_caps = NULL;
+	GstCaps *new_pad_caps = NULL;
+	GstStructure *new_pad_struct = NULL;
+	const gchar *new_pad_type = NULL;
+	char *caps;
+	g_print("Received new pad '%s' from '%s':\n", GST_PAD_NAME(pad), GST_ELEMENT_NAME(element));
+
+	new_pad_caps = gst_pad_get_current_caps(pad);
+	new_pad_struct = gst_caps_get_structure(new_pad_caps, 0);
+	new_pad_type = gst_structure_get_name(new_pad_struct);
+
+	if (g_str_has_prefix(new_pad_type, "audio/mpeg")) {
+		new_pad_aud_caps = gst_pad_get_current_caps(pad);
+		caps = gst_caps_to_string(new_pad_aud_caps);
+		g_print("Aud caps:%s\n", caps);
+		aud_caps = caps;
+
+		/* Link demuxer to audioqueue */
+		ret = gst_pad_link(pad, sink_pad_audioqueue);
+		if (GST_PAD_LINK_FAILED(ret))
+			g_print(" Type is but link failed.\n %s", new_pad_type);
+		else
+			g_print(" Link succeeded  (type '%s').\n", new_pad_type);
+
+		gst_element_link(data->audioqueue, data->audio_appsink);
+		g_object_set(data->audio_appsink, "emit-signals", TRUE, NULL);
+		g_signal_connect(data->audio_appsink, "new-sample", G_CALLBACK(_audio_app_sink_callback), data);
+		g_signal_connect(data->audio_appsink, "eos", G_CALLBACK(_audio_app_sink_eos_callback), data);
+
+		/* Link audioqueue->audio_appsink and save/Give to appsrc of muxer */
+		gst_element_set_state(data->audio_appsink, GST_STATE_PLAYING);
+		/* one has to set the newly added element to the same state as the rest of the elements. */
+	} else if (g_str_has_prefix(new_pad_type, "video/x-h264")) {
+		new_pad_vid_caps = gst_pad_get_current_caps(pad);
+		caps = gst_caps_to_string(new_pad_vid_caps);
+		g_print("Video:%s\n",caps);
+		vid_caps = caps;
+
+		/* link demuxer with videoqueue */
+		ret = gst_pad_link(pad, sink_pad_videoqueue);
+		if (GST_PAD_LINK_FAILED(ret))
+			g_print("Type is '%s' but link failed.\n", new_pad_type);
+		else
+			g_print("Link succeeded (type '%s').\n", new_pad_type);
+		gst_element_link(data->videoqueue, data->video_appsink);
+		g_object_set(data->video_appsink, "emit-signals", TRUE, NULL);
+		g_signal_connect(data->video_appsink, "new-sample", G_CALLBACK(_video_app_sink_callback), data);
+		g_signal_connect(data->video_appsink, "eos", G_CALLBACK(_video_app_sink_eos_callback), data);
+		gst_element_set_state(data->video_appsink, GST_STATE_PLAYING);
+		/* one has to set the newly added element to the same state as the rest of the elements. */
+	} else {
+		g_print(" It has type '%s' which is not raw A/V. Ignoring.\n", new_pad_type);
+		goto exit;
+	}
+
+exit:
+	if (new_pad_caps != NULL)
+		gst_caps_unref(new_pad_caps);
+
+	gst_object_unref(sink_pad_audioqueue);
+	gst_object_unref(sink_pad_videoqueue);
+}
+
+/* Demuxer bus_call */
+static gboolean _bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
+{
+	GMainLoop *dmxr_loop = (GMainLoop*)data;
+
+	switch (GST_MESSAGE_TYPE(mesg))
+	{
+		case GST_MESSAGE_EOS:
+			g_print("End of stream\n");
+			g_main_loop_quit(dmxr_loop);
+			break;
+
+		case GST_MESSAGE_ERROR:
+		{
+			gchar *dbg;
+			GError *err;
+			gst_message_parse_error(mesg, &err, &dbg);
+			g_free(dbg);
+			g_printerr("Demuxer-Error:%s \n", err->message);
+			g_error_free(err);
+			g_main_loop_quit(dmxr_loop);
+			break;
+		}
+		default:
+			break;
+	}
+	return TRUE;
+}
+
+/* Demux an mp4 file and generate encoded streams and extra data  */
+int demux_mp4()
+{
+	CustomData data;
+	GMainLoop *loop_dmx;
+	GstBus *bus;
+	guint watch_id_for_bus;
+
+	if (access(file_mp4, F_OK) == -1) {
+		/* mp4 file doesn't exist */
+		g_print("mp4 Invalid file path.");
+		return -1;
+	}
+
+	gst_init(NULL,NULL);
+	loop_dmx = g_main_loop_new(NULL, FALSE);
+	data.loop = loop_dmx;
+
+	/* Create gstreamer elements for demuxer*/
+	data.pipeline = gst_pipeline_new("DemuxerPipeline");
+	data.source = gst_element_factory_make("filesrc", "file-source");
+	data.demuxer = gst_element_factory_make("qtdemux", "mp4-demuxer");
+	data.audioqueue = gst_element_factory_make("queue", "audio-queue");
+	data.videoqueue = gst_element_factory_make("queue", "video-queue");
+
+	data.dummysink = gst_element_factory_make("fakesink", "fakesink");
+	data.video_appsink = gst_element_factory_make("appsink", "video (h264) appsink");
+	data.audio_appsink = gst_element_factory_make("appsink", "audio (AAC) appsink");
+
+	if (!data.pipeline || !data.source || !data.demuxer || !data.audioqueue
+		|| !data.dummysink || !data.videoqueue || !data.audio_appsink || !data.video_appsink) {
+		g_print("Test-Suite: One gst-element can't be created. Exiting\n");
+		return -1;
+	}
+
+	/* Add msg-handler */
+	bus = gst_pipeline_get_bus(GST_PIPELINE(data.pipeline));
+	watch_id_for_bus = gst_bus_add_watch(bus, _bus_call, loop_dmx);
+	gst_object_unref(bus);
+
+	/* Add gstreamer-elements into gst-pipeline */
+	gst_bin_add_many(GST_BIN(data.pipeline), data.source, data.demuxer, data.dummysink, \
+		      data.audioqueue, data.videoqueue,data.audio_appsink, data.video_appsink, NULL);
+
+	/* we set the input filename to the source element */
+	g_object_set(G_OBJECT(data.source), "location", file_mp4, NULL);
+
+	/* we link the elements together */
+	gst_element_link(data.source, data.demuxer);
+
+	/* Register demuxer callback */
+	g_signal_connect(data.demuxer, "pad-added", G_CALLBACK(_on_pad_added), &data);
+
+	/* play the pipeline */
+	g_print("Now playing: %s\n", file_mp4);
+	gst_element_set_state(data.pipeline, GST_STATE_PLAYING);
+
+	/* Run the loop till quit */
+	g_print("gst-pipeline-Running...\n");
+	g_main_loop_run(loop_dmx);
+
+	/* Done with gst-loop. Free resources */
+	gst_element_set_state(data.pipeline, GST_STATE_NULL);
+
+	g_print("Unreferencing the gst-pipeline\n");
+	gst_object_unref(GST_OBJECT(data.pipeline));
+	g_source_remove(watch_id_for_bus);
+	g_main_loop_unref(loop_dmx);
+	return 0;
+}
+
 
 int test_mediamuxer_create()
 {
 	g_print("test_mediamuxer_create\n");
 	g_print("%p", myMuxer);
 
-	if (mediamuxer_create(&myMuxer)
-	    != MEDIAMUXER_ERROR_NONE) {
+	if (mediamuxer_create(&myMuxer) != MEDIAMUXER_ERROR_NONE) {
 		g_print("mediamuxer create is failed\n");
 	}
+
 	g_print("\n Muxer->mx_handle created successfully with address=%p",
-	        (void *)((mediamuxer_s *) myMuxer)->mx_handle);
+	        (void *)((mediamuxer_s *)myMuxer)->mx_handle);
 	g_print("\n Muxer handle created successfully with address=%p",
 	        myMuxer);
 
@@ -88,6 +513,13 @@ int test_mediamuxer_destroy()
 	myMuxer = NULL;
 	g_print("\nDestroy operation returned: %d\n", ret);
 	return ret;
+}
+
+int test_mediamuxer_prepare()
+{
+	g_print("mediamuxer_prepare completed \n");
+	mediamuxer_prepare(myMuxer);
+	return 0;
 }
 
 int test_mediamuxer_start()
@@ -114,18 +546,18 @@ int test_mediamuxer_add_track_video()
 
 	media_format_set_video_width(media_format, 640);
 	media_format_set_video_height(media_format, 480);
-	media_format_set_video_avg_bps(media_format, 10);
-	media_format_set_video_max_bps(media_format, 10);
+	media_format_set_video_avg_bps(media_format, 256000);
+	media_format_set_video_max_bps(media_format, 256000);
 
 	media_format_get_video_info(media_format, &mimetype, &width, &height, &avg_bps, &max_bps);
 
-	g_print("\n Video Mime trying to set: %x   %x\n", (int)(mimetype), (int)(MEDIA_FORMAT_H264_SP));
+	g_print("\n Video Mime trying to set: %x   %x\n",(int)(mimetype),(int)(MEDIA_FORMAT_H264_SP));
 	g_print("\n Video param trying to set: (width, height, avg_bps, max_bps): %d %d %d %d  \n",
 	        width, height, avg_bps, max_bps);
 
 	/* To add video track */
 	mediamuxer_add_track(myMuxer, media_format, &track_index_vid);
-	g_print("audio track index returned is: %d", track_index_vid);
+	g_print("video track index returned is: %d", track_index_vid);
 	return 0;
 }
 
@@ -147,9 +579,9 @@ int test_mediamuxer_add_track_audio()
 
 	if (media_format_set_audio_channel(media_format_a, 2) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 		g_print("Problem during media_format_set_audio_channel operation");
-	media_format_set_audio_samplerate(media_format_a, 44000);
-	media_format_set_audio_bit(media_format_a, 1);
-	media_format_set_audio_avg_bps(media_format_a, 10);
+	media_format_set_audio_samplerate(media_format_a, 44100);
+	media_format_set_audio_bit(media_format_a, 32);
+	media_format_set_audio_avg_bps(media_format_a, 128000);
 	media_format_set_audio_aac_type(media_format_a, true);
 
 	media_format_get_audio_info(media_format_a, &mimetype, &channel, &samplerate, &bit, &avg_bps);
@@ -177,313 +609,10 @@ int test_mediamuxer_set_error_cb()
 	return ret;
 }
 
-void *_write_video_data()
-{
-	FILE *pvFile;
-	FILE *pvFileInfo;
-	unsigned int size;
-	unsigned int vsize;
-	unsigned int is_video_readable = 1;
-	unsigned int is_video_pts_readable;
-	unsigned int is_video_dts_readable;
-	unsigned int is_video_duration_readable;
-	unsigned int is_video_flag_readable;
-	unsigned int is_video_key_readable;
-	unsigned long long int pts_vid;
-	unsigned long long int dts_vid;
-	unsigned long long int duration_vid;
-	int flg_vid;
-	int *status = (int *)g_malloc(sizeof(int) * 1);
-	*status = -1;
-	int track_index_vid = 1; /* track_index=2 for video */
-	int vcount = 0;
-	guint8 *ptr_vid;
-	int key_vid;
-	char *vid_caps;
-	int ret_scan;
-	media_packet_h vid_pkt;
-	media_format_h vidfmt;
-	unsigned int vcap_size;
-
-	pvFile = fopen(H264_FILE, "rb");
-	pvFileInfo = fopen(H264_INFO, "rt");
-
-	if (pvFile == NULL || pvFileInfo == NULL) {
-		g_print("\nOne of the files (info/data) cant be loaded...\n");
-		return (void *)status;
-	}
-
-	ret_scan = fscanf(pvFileInfo, "%d\n", &size);
-	vid_caps = (char *)malloc(size + 1);
-	ret_scan = fscanf(pvFileInfo, "%[^\n]s\n", vid_caps);
-	g_print("\nV_Caps = %s\n", vid_caps);
-	vcap_size = size + 1;
-
-	if (!ret_scan) { /* ToDo: repeat the same for every scanf */
-		g_print("\nscan failed");
-		return (void *)status;
-	}
-
-	while (is_video_readable == 1) {
-		/* Read encoded video data */
-		is_video_readable = fscanf(pvFileInfo, "%d\n", &vsize);
-		is_video_pts_readable = fscanf(pvFileInfo, "%llu\n", &pts_vid);
-		is_video_dts_readable = fscanf(pvFileInfo, "%llu\n", &dts_vid);
-		is_video_duration_readable = fscanf(pvFileInfo, "%llu\n", &duration_vid);
-		is_video_flag_readable = fscanf(pvFileInfo, "%u\n", &flg_vid);
-		is_video_key_readable = fscanf(pvFileInfo, "%d\n", &key_vid);
-
-		if (is_video_readable == 1 && is_video_pts_readable == 1 && is_video_dts_readable == 1
-		    && is_video_duration_readable == 1 && is_video_flag_readable == 1
-		    && is_video_key_readable == 1) {
-			g_print("\nv%d: ", ++vcount);
-			g_print("\nv_Size: %d, v_pts: %llu, v_dts: %llu v_duration: %llu, v_flag: %d",
-			        vsize, pts_vid, dts_vid, duration_vid, key_vid);
-			ptr_vid = g_malloc(vsize);
-			g_assert(ptr_vid);
-			vsize = fread(ptr_vid, 1, vsize, pvFile);
-
-			if (media_format_create(&vidfmt)) {
-				g_print("media_format_create failed\n");
-				return (void *)status;
-			}
-			if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H264_SP)) {
-				g_print("media_format_set_audio_mime failed\n");
-				return (void *)status;
-			}
-			media_format_set_video_width(vidfmt, vsize / 2 + 1);
-			media_format_set_video_height(vidfmt, vsize / 2 + 1);
-			/*frame rate is came from the caps filter of demuxer*/
-			if (media_format_set_video_frame_rate(vidfmt, 30)) {
-				g_print("media_format_set_video_frame_rate failed\n");
-				return (void *)status;
-			}
-
-			uint64_t ns;
-			guint8 *dptr;
-
-			if (media_packet_create(vidfmt, NULL, NULL, &vid_pkt)) {
-				g_print("\ncreate v media packet failed tc\n");
-				return (void *)status;
-			}
-
-			if (media_packet_alloc(vid_pkt)) {
-				g_print(" v media packet alloc failed\n");
-				return (void *)status;
-			}
-			media_packet_get_buffer_data_ptr(vid_pkt, (void **)&dptr);
-			media_packet_get_buffer_size(vid_pkt, &ns);
-			g_print("set v buf size as %d, data size=%d\n", (int)ns, vsize);
-
-			memcpy((char *)dptr, ptr_vid, vsize);
-			if (media_packet_set_buffer_size(vid_pkt, vsize)) {
-				g_print("set v buf size failed\n");
-				return (void *)status;
-			}
-
-
-			if (media_packet_get_buffer_size(vid_pkt, &ns)) {
-				g_print("unable to set the v buffer size actual =%d, fixed %d\n", size, (int)ns);
-				return (void *)status;
-			}
-			g_print(" fixed size %d\n", (int)ns);
-
-			if (media_packet_set_pts(vid_pkt, pts_vid)) {
-				g_print("unable to set the pts\n");
-				return (void *)status;
-			}
-			if (media_packet_set_dts(vid_pkt, dts_vid)) {
-				g_print("unable to set the pts\n");
-				return (void *)status;
-			}
-			if (media_packet_set_duration(vid_pkt, duration_vid)) {
-				g_print("unable to set the pts\n");
-				return (void *)status;
-			}
-
-			if (media_packet_set_flags(vid_pkt, flg_vid)) {
-				g_print("unable to set the flag size\n");
-				return (void *)status;
-			}
-			if (media_packet_set_codec_data(vid_pkt, vid_caps, vcap_size)) {
-				g_print("unable to set the flag size\n");
-				return (void *)status;
-			}
-
-			mediamuxer_write_sample(myMuxer, track_index_vid, vid_pkt);
-
-			media_packet_destroy(vid_pkt);
-		} else {
-			g_print("\nVideo while done in the test suite");
-			mediamuxer_close_track(myMuxer, track_index_vid);
-		}
-	}
-	g_print("\n\n\n ******* Out of while loop ****** \n\n\n");
-	fclose(pvFile);
-	fclose(pvFileInfo);
-	*status = 0;
-	return (void *)status;
-}
-
-void *_write_audio_data()
-{
-	FILE *paFile;
-	FILE *paFileInfo;
-	unsigned int size;
-	unsigned int is_audio_readable = 1;
-	unsigned int is_audio_pts_readable;
-	unsigned int is_audio_dts_readable;
-	unsigned int is_audio_duration_readable;
-	unsigned int is_audio_flag_readable;
-	unsigned int is_audio_key_readable;
-	unsigned char *ptr1;
-	unsigned long long int pts;
-	unsigned long long int dts;
-	unsigned long long int duration;
-	int flg;
-
-	int key;
-	int acount = 0;
-	int track_index_aud = 2; /* track_index=2 for audio */
-	char *aud_caps;
-	int ret_scan;
-	media_packet_h aud_pkt;
-	media_format_h audfmt;
-	unsigned int acap_size;
-	int *status = (int *)g_malloc(sizeof(int) * 1);
-	*status = -1;
-
-	paFileInfo = fopen(AAC_INFO, "rt");
-	paFile = fopen(AAC_FILE, "rb");
-
-	if (paFile == NULL || paFileInfo == NULL) {
-		g_print("\nOne of the files (info/data) cant be loaded...\n");
-		return (void *)status;
-	}
-
-	ret_scan = fscanf(paFileInfo, "%d\n", &size);
-	aud_caps = (char *)malloc(1 + size);
-	ret_scan = fscanf(paFileInfo, "%[^\n]s\n", aud_caps);
-	g_print("\nA_Caps = %s\n", aud_caps);
-	acap_size = size + 1;
-
-	if (!ret_scan) { /* ToDo: repeat the same for every scanf */
-		g_print("\nscan failed");
-		return (void *)status;
-	}
-
-	while (is_audio_readable == 1) {
-
-		/* Read encoded audio data */
-		is_audio_readable = fscanf(paFileInfo, "%d\n", &size);
-		is_audio_pts_readable = fscanf(paFileInfo, "%llu\n", &pts);
-		is_audio_dts_readable = fscanf(paFileInfo, "%llu\n", &dts);
-		is_audio_duration_readable = fscanf(paFileInfo, "%llu\n", &duration);
-		is_audio_flag_readable = fscanf(paFileInfo, "%u\n", &flg);
-		is_audio_key_readable = fscanf(paFileInfo, "%d\n", &key);
-
-		if (is_audio_readable == 1 && is_audio_pts_readable == 1
-		    && is_audio_dts_readable == 1 && is_audio_duration_readable == 1
-		    && is_audio_flag_readable == 1 && is_audio_key_readable == 1) {
-			g_print("\na%d: ", ++acount);
-			g_print("\nSize: %d, a_pts: %llu, a_dts: %llu, a_duration: %llu, a_flag:%d, a_key:%d",
-			        size, pts, dts, duration, flg, key);
-
-			if (media_format_create(&audfmt)) {
-				g_print("media_format_create failed\n");
-				return (void *)status;
-			}
-			if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AAC)) {
-				g_print("media_format_set_audio_mime failed\n");
-				return (void *)status;
-			}
-
-			ptr1 = g_malloc(size);
-			g_assert(ptr1);
-
-			size = fread(ptr1, 1, size, paFile);
-
-			/* To create media_pkt */
-			uint64_t ns;
-			guint8 *dptr;
-
-			if (media_packet_create(audfmt, NULL, NULL, &aud_pkt)) {
-				g_print("create audio media_packet failed\n");
-				return (void *)status;
-			}
-
-			if (media_packet_alloc(aud_pkt)) {
-				g_print("audio media_packet alloc failed\n");
-				return (void *)status;
-			}
-			media_packet_get_buffer_data_ptr(aud_pkt, (void **)&dptr);
-			memcpy((char *)dptr, ptr1, size);
-
-			if (media_packet_set_buffer_size(aud_pkt, (uint64_t)size)) {
-				g_print("audio set_buffer_size failed\n");
-				return (void *)status;
-			}
-
-			if (media_packet_get_buffer_size(aud_pkt, &ns)) {
-				g_print("unable to set the buffer size actual =%d, fixed %d\n", size, (int)ns);
-				return (void *)status;
-			}
-
-			g_print(" fixed size %d\n", (int)ns);
-
-			if (media_packet_set_pts(aud_pkt, pts)) {
-				g_print("unable to set the pts\n");
-				return (void *)status;
-			}
-
-			if (media_packet_set_dts(aud_pkt, dts)) {
-				g_print("unable to set the pts\n");
-				return (void *)status;
-			}
-
-			if (media_packet_set_duration(aud_pkt, duration)) {
-				g_print("unable to set the pts\n");
-				return (void *)status;
-			}
-
-			if (media_packet_set_flags(aud_pkt, key)) {
-				g_print("unable to set the flag size\n");
-				return (void *)status;
-			}
-			if (media_packet_set_codec_data(aud_pkt, aud_caps, acap_size)) {
-				g_print("unable to set the audio codec data e\n");
-				return (void *)status;
-			}
-
-			mediamuxer_write_sample(myMuxer, track_index_aud, aud_pkt);
-
-			media_packet_destroy(aud_pkt);
-		} else {
-			g_print("\nAudio while done in the test suite");
-			mediamuxer_close_track(myMuxer, track_index_aud);
-		}
-
-	}
-	g_print("\n\n\n ******* Out of while loop ****** \n\n\n");
-
-	fclose(paFile);
-	fclose(paFileInfo);
-	*status = 0;
-	return (void *)status;
-}
-
 
 int test_mediamuxer_write_sample()
 {
-	pthread_t thread[2];
-	pthread_attr_t attr;
-	/* Initialize and set thread detached attribute */
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	g_print("In main: creating thread  for audio\n");
-	pthread_create(&thread[0], &attr, _write_video_data, NULL);
-	pthread_create(&thread[1], &attr, _write_audio_data, NULL);
-	pthread_attr_destroy(&attr);
+	demux_mp4();
 	return 0;
 }
 
@@ -491,6 +620,14 @@ int test_mediamuxer_stop()
 {
 	g_print("test_mediamuxer_stop\n");
 	mediamuxer_stop(myMuxer);
+	return 0;
+}
+
+
+int test_mediamuxer_unprepare()
+{
+	g_print("test_mediamuxer_unprepare\n");
+	mediamuxer_unprepare(myMuxer);
 	media_format_unref(media_format_a);
 	media_format_unref(media_format);
 	return 0;
@@ -529,10 +666,7 @@ void quit_testApp(void)
 
 enum {
 	CURRENT_STATUS_MAINMENU,
-	CURRENT_STATUS_AUDIO_FILENAME,
-	CURRENT_STATUS_AUDIO_INFONAME,
-	CURRENT_STATUS_VIDEO_FILENAME,
-	CURRENT_STATUS_VIDEO_INFONAME,
+	CURRENT_STATUS_MP4_FILENAME
 };
 
 int g_menu_state = CURRENT_STATUS_MAINMENU;
@@ -560,16 +694,28 @@ void _interpret_main_menu(char *cmd)
 			test_mediamuxer_set_data_sink();
 		} else if (strncmp(cmd, "d", 1) == 0) {
 			test_mediamuxer_destroy();
+		} else if (strncmp(cmd, "e", 1) == 0) {
+			test_mediamuxer_prepare();
 		} else if (strncmp(cmd, "s", 1) == 0) {
 			test_mediamuxer_start();
 		} else if (strncmp(cmd, "a", 1) == 0) {
-			g_menu_state = CURRENT_STATUS_AUDIO_FILENAME;
+			if (have_mp4 == false) {
+				g_menu_state = CURRENT_STATUS_MP4_FILENAME;
+				have_mp4 = true;
+			}
+			test_mediamuxer_add_track_audio();
 		} else if (strncmp(cmd, "v", 1) == 0) {
-			g_menu_state = CURRENT_STATUS_VIDEO_FILENAME;
+			if (have_mp4 == false) {
+				g_menu_state = CURRENT_STATUS_MP4_FILENAME;
+				have_mp4 = true;
+			}
+			test_mediamuxer_add_track_video();
 		} else if (strncmp(cmd, "m", 1) == 0) {
 			test_mediamuxer_write_sample();
-		} else if (strncmp(cmd, "e", 1) == 0) {
+		} else if (strncmp(cmd, "t", 1) == 0) {
 			test_mediamuxer_stop();
+		} else if (strncmp(cmd, "u", 1) == 0) {
+			test_mediamuxer_unprepare();
 		} else if (strncmp(cmd, "p", 1) == 0) {
 			test_mediamuxer_pause();
 		} else if (strncmp(cmd, "r", 1) == 0) {
@@ -592,20 +738,9 @@ static void displaymenu(void)
 {
 	if (g_menu_state == CURRENT_STATUS_MAINMENU) {
 		display_sub_basic();
-	} else if (g_menu_state == CURRENT_STATUS_AUDIO_FILENAME) {
-		g_print("*** input encoded audio_data path:\n");
-		g_print("[This is the raw encoded audio file to be muxed]:");
-	} else if (g_menu_state == CURRENT_STATUS_AUDIO_INFONAME) {
-		g_print("*** input encoded audio info (extra data) path\n");
-		g_print("[This is the extra-information needed to mux.");
-		g_print("This includes gst-caps too]:");
-	} else if (g_menu_state == CURRENT_STATUS_VIDEO_FILENAME) {
-		g_print("*** input encoded video path\n");
-		g_print("[This is the raw encoded video file to be muxed]:");
-	} else if (g_menu_state == CURRENT_STATUS_VIDEO_INFONAME) {
-		g_print("*** input encoded video info (extra data) path\n");
-		g_print("[This is the extra-information needed to mux.");
-		g_print("This includes gst-caps too]:");
+	} else if (g_menu_state == CURRENT_STATUS_MP4_FILENAME) {
+		g_print("*** input mp4 file path:\n");
+		g_print("[This is the file from where demuxed data is fed to muxer]:");
 	} else {
 		g_print("*** unknown status.\n");
 		exit(0);
@@ -627,30 +762,9 @@ static void interpret(char *cmd)
 				_interpret_main_menu(cmd);
 				break;
 			}
-		case CURRENT_STATUS_AUDIO_FILENAME: {
+		case CURRENT_STATUS_MP4_FILENAME: {
 				input_filepath(cmd);
-				strcpy(audio_data, cmd);
-				g_menu_state = CURRENT_STATUS_AUDIO_INFONAME;
-				break;
-			}
-		case CURRENT_STATUS_AUDIO_INFONAME: {
-				input_filepath(cmd);
-				strcpy(audio_extra_info, cmd);
-				test_mediamuxer_add_track_audio();
-				g_menu_state = CURRENT_STATUS_MAINMENU;
-
-				break;
-			}
-		case CURRENT_STATUS_VIDEO_FILENAME: {
-				input_filepath(cmd);
-				strcpy(video_data, cmd);
-				g_menu_state = CURRENT_STATUS_VIDEO_INFONAME;
-				break;
-			}
-		case CURRENT_STATUS_VIDEO_INFONAME: {
-				input_filepath(cmd);
-				strcpy(video_extra_info, cmd);
-				test_mediamuxer_add_track_video();
+				strcpy(file_mp4, cmd);
 				g_menu_state = CURRENT_STATUS_MAINMENU;
 				break;
 			}
@@ -670,12 +784,14 @@ static void display_sub_basic()
 	g_print("o. Set Data Sink \t");
 	g_print("a. AddAudioTrack \t");
 	g_print("v. AddVideoTrack \t");
-	g_print("s. Start \t");
-	g_print("m. StartMuxing \t");
+	g_print("e. prepare \t");
+	g_print("s. start \t");
+	g_print("m. startMuxing \t");
 	g_print("p. PauseMuxing \t");
 	g_print("r. ResumeMuxing \t");
 	g_print("b. set error callback \t");
-	g_print("e. Stop (eos) \n");
+	g_print("t. stop \t");
+	g_print("u. UnPrepare \t");
 	g_print("d. destroy \t");
 	g_print("q. quit \t");
 	g_print("\n");
@@ -718,7 +834,7 @@ int main(int argc, char *argv[])
 	GMainLoop *loop = g_main_loop_new(NULL, 0);
 	stdin_channel = g_io_channel_unix_new(0);
 	g_io_channel_set_flags(stdin_channel, G_IO_FLAG_NONBLOCK, NULL);
-	g_io_add_watch(stdin_channel, G_IO_IN, (GIOFunc) input, NULL);
+	g_io_add_watch(stdin_channel, G_IO_IN, (GIOFunc)input, NULL);
 
 	displaymenu();
 	/* g_print("RUN main loop\n"); */

@@ -30,6 +30,7 @@ static int gst_muxer_set_data_sink(MMHandleType pHandle, char *uri,
 			mediamuxer_output_format_e format);
 static int gst_muxer_add_track(MMHandleType pHandle,
 			media_format_h media_format, int *track_index);
+static int gst_muxer_prepare(MMHandleType pHandle);
 static int gst_muxer_start(MMHandleType pHandle);
 static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 			media_packet_h inbuf);
@@ -37,6 +38,7 @@ static int gst_muxer_close_track(MMHandleType pHandle, int track_index);
 static int gst_muxer_pause(MMHandleType pHandle);
 static int gst_muxer_resume(MMHandleType pHandle);
 static int gst_muxer_stop(MMHandleType pHandle);
+static int gst_muxer_unprepare(MMHandleType pHandle);
 static int gst_muxer_destroy(MMHandleType pHandle);
 static int gst_set_error_cb(MMHandleType pHandle,
 			gst_error_cb callback, void* user_data);
@@ -47,12 +49,14 @@ static media_port_muxer_ops def_mux_ops = {
 	.init = gst_muxer_init,
 	.set_data_sink = gst_muxer_set_data_sink,
 	.add_track = gst_muxer_add_track,
+	.prepare = gst_muxer_prepare,
 	.start = gst_muxer_start,
 	.write_sample = gst_muxer_write_sample,
 	.close_track = gst_muxer_close_track,
 	.pause = gst_muxer_pause,
 	.resume = gst_muxer_resume,
 	.stop = gst_muxer_stop,
+	.unprepare = gst_muxer_unprepare,
 	.destroy = gst_muxer_destroy,
 	.set_error_cb = gst_set_error_cb,
 };
@@ -489,9 +493,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	gst_handle->bus_watch_id = gst_bus_add_watch(bus, _mx_gst_bus_call, gst_handle);
 	gst_object_unref(bus);
 
-	/* set pipeline state to PLAYING */
+	/* set pipeline state to READY */
 	MEDIAMUXER_ELEMENT_SET_STATE(GST_ELEMENT_CAST(gst_handle->pipeline),
-	                             GST_STATE_PLAYING);
+	                             GST_STATE_READY);
 	return MX_ERROR_NONE;
 
 STATE_CHANGE_FAILED:
@@ -524,15 +528,43 @@ ERROR:
 	return ret;
 }
 
-static int gst_muxer_start(MMHandleType pHandle)
+static int gst_muxer_prepare(MMHandleType pHandle)
 {
 	MEDIAMUXER_FENTER();
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *new_mediamuxer = (mxgst_handle_t *) pHandle;
 
-	MX_I("__gst_muxer_start adding elements to the pipeline:%p\n", new_mediamuxer);
+	MX_I("__gst_muxer_prepare adding elements to the pipeline:%p\n", new_mediamuxer);
 	ret = _gst_create_pipeline(new_mediamuxer);
+	MEDIAMUXER_FLEAVE();
+	return ret;
+ERROR:
+	MX_E("muxer handle NULL, returning \n");
+	ret = MX_ERROR_INVALID_ARGUMENT;
+	MEDIAMUXER_FLEAVE();
+	return ret;
+}
+
+static int gst_muxer_start(MMHandleType pHandle)
+{
+	MEDIAMUXER_FENTER();
+	int ret = MX_ERROR_NONE;
+	MEDIAMUXER_CHECK_NULL(pHandle);
+	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
+
+	MX_I("__gst_muxer_start making pipeline to playing:%p\n", gst_handle);
+
+	/* set pipeline state to PLAYING */
+	MEDIAMUXER_ELEMENT_SET_STATE(GST_ELEMENT_CAST(gst_handle->pipeline),
+	                             GST_STATE_PLAYING);
+
+	MEDIAMUXER_FLEAVE();
+	return ret;
+
+STATE_CHANGE_FAILED:
+	MX_E("muxer state change failed, returning \n");
+	ret = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -1056,8 +1088,8 @@ ERROR:
 static int gst_muxer_resume(MMHandleType pHandle)
 {
 	MEDIAMUXER_FENTER();
-	MEDIAMUXER_CHECK_NULL(pHandle);
 	int ret = MX_ERROR_NONE;
+	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
 
 	MX_I("gst_muxer_resume setting pipeline to playing");
@@ -1069,6 +1101,31 @@ static int gst_muxer_resume(MMHandleType pHandle)
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
+	ret = MX_ERROR_INVALID_ARGUMENT;
+	MEDIAMUXER_FLEAVE();
+	return ret;
+}
+
+static int gst_muxer_stop(MMHandleType pHandle)
+{
+	MEDIAMUXER_FENTER();
+	int ret = MX_ERROR_NONE;
+	MEDIAMUXER_CHECK_NULL(pHandle);
+	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
+
+	MX_I("gst_muxer_stop making pipeline to ready:%p\n", gst_handle);
+	/* set pipeline state to READY */
+	MEDIAMUXER_ELEMENT_SET_STATE(GST_ELEMENT_CAST(gst_handle->pipeline),
+	                             GST_STATE_READY);
+	MEDIAMUXER_FLEAVE();
+	return ret;
+STATE_CHANGE_FAILED:
+	MX_E("muxer state change failed, returning \n");
+	ret = MX_ERROR_INVALID_ARGUMENT;
+	MEDIAMUXER_FLEAVE();
+	return ret;
+ERROR:
+	MX_E("muxer handle NULL, returning \n");
 	ret = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -1115,14 +1172,14 @@ mx_ret_e _gst_destroy_pipeline(mxgst_handle_t *gst_handle)
 	return ret;
 }
 
-static int gst_muxer_stop(MMHandleType pHandle)
+static int gst_muxer_unprepare(MMHandleType pHandle)
 {
 	MEDIAMUXER_FENTER();
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
 
-	MX_I("__gst_muxer_stop setting eos to sources:%p\n", gst_handle);
+	MX_I("gst_muxer_unprepare setting eos to sources:%p\n", gst_handle);
 	ret = _gst_destroy_pipeline(gst_handle);
 	MEDIAMUXER_FLEAVE();
 	return ret;

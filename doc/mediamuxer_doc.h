@@ -43,6 +43,7 @@
  * mediamuxer_set_data_sink()
  * mediamuxer_add_track(1)
  * mediamuxer_add_track(2)	[add more tracks, if needed]
+ * mediamuxer_prepare()
  * mediamuxer_start()
  * while()
  *	if (is_track(1)_data_available)
@@ -54,6 +55,7 @@
  *	else
  *		mediamuxer_close_track(2)
  * mediamuxer_stop()
+ * mediamuxer_unprepare()
  * mediamuxer_destroy()
  */
 
