@@ -137,7 +137,8 @@ static void _audio_app_sink_callback(GstElement *sink, CustomData *data)
 			}
 
 			if (media_packet_get_buffer_size(aud_pkt, &ns)) {
-				g_print("unable to set the buffer size actual =%u, fixed %"PRIu64"\n",map.size,ns);
+				g_print("unable to set the buffer size actual =%d, fixed %"PRIu64"\n",
+					(unsigned int)map.size, ns);
 				return;
 			}
 
@@ -199,7 +200,7 @@ static void _video_app_sink_callback(GstElement *sink, CustomData *data)
 		/* Print a * to indicate a received buffer */
 		g_print("v%d: ", ++count);
 
-		g_print("PTS=%llu\n", buffer->pts);
+		g_print("PTS=%"PRIu64"\n", buffer->pts);
 
 		if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
 			if (media_format_create(&vidfmt)) {
@@ -250,7 +251,8 @@ static void _video_app_sink_callback(GstElement *sink, CustomData *data)
 			}
 
 			if (media_packet_get_buffer_size(vid_pkt, &ns)) {
-				g_print("unable to set the buffer size actual =%d, fixed %"PRIu64"\n", map.size, ns);
+				g_print("unable to set the buffer size actual =%d, fixed %"PRIu64"\n",
+					(unsigned int)map.size, ns);
 				return;
 			}
 
