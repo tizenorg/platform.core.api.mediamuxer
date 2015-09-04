@@ -13,7 +13,7 @@ SET(INC_PORT_CUSTOM_DIR include/port_custom)
 SET(INC_PORT_FFMPEG_DIR include/port_ffmpeg)
 INCLUDE_DIRECTORIES(${INC_DIR} ${INC_PORT_GST_DIR} ${INC_PORT_CUSTOM_DIR} ${INC_PORT_FFMPEG_DIR})
 
-SET(dependents "dlog glib-2.0 mm-common capi-media-tool iniparser gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-app-1.0")
+SET(dependents "dlog glib-2.0 mm-common capi-media-tool iniparser gstreamer-1.0 gstreamer-plugins-base-1.0 gstreamer-app-1.0 capi-media-codec")
 SET(pc_dependents "capi-base-common capi-media-tool")
 
 INCLUDE(FindPkgConfig)
