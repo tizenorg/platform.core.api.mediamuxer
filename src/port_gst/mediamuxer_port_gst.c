@@ -724,12 +724,13 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 
 	switch (formattype) {
 		case MEDIA_FORMAT_AUDIO:
-			if (media_packet_get_codec_data(packet,
-			                                (void **)&codec_data, &codec_data_size)) {
-				MX_E("media_packet_get_codec_data call failed\n");
+			if (media_packet_get_extra(packet,
+			                                (void **)&codec_data)) {
+				MX_E("media_packet_get_extra call failed\n");
 				ret = MX_ERROR_UNKNOWN;
 				break;
 			}
+			codec_data_size = strlen(codec_data) + 1;
 			MX_I("extracted codec data is =%s size is %d\n",
 			     codec_data, codec_data_size);
 			if (gst_handle->audio_track.caps == NULL ||
@@ -793,12 +794,13 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 			}
 			break;
 		case MEDIA_FORMAT_VIDEO:
-			if (media_packet_get_codec_data(packet,
-			                                (void **)&codec_data, &codec_data_size)) {
-				MX_E("media_packet_get_codec_data call failed\n");
+			if (media_packet_get_extra(packet,
+			                                (void **)&codec_data)) {
+				MX_E("media_packet_get_extra call failed\n");
 				ret = MX_ERROR_UNKNOWN;
 				break;
 			}
+			codec_data_size = strlen(codec_data) + 1;
 			MX_I("codec data is =%s size is %d\n",
 			     codec_data, codec_data_size);
 			if (gst_handle->video_track.caps == NULL ||
@@ -851,8 +853,8 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 				             new_cap, NULL);
 #else
 				/*Debugging purpose. The whole caps filter can be sent via codec_data*/
-				media_packet_get_codec_data(packet, &codec_data,
-				                            &codec_data_size);
+				media_packet_get_extra(packet, &codec_data);,
+				codec_data_size = strlen(codec_data) + 1;
 				MX_I("extracted codec data is =%s\n", codec_data);
 				new_cap = gst_caps_from_string(codec_data);
 				MX_I("New cap is=%s\n", codec_data);
