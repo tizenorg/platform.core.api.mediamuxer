@@ -731,7 +731,7 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (media_packet_set_codec_data(aud_pkt, aud_caps, strlen(aud_caps)+1)) {
+			if (media_packet_set_extra(aud_pkt, aud_caps)) {
 				g_print("unable to set the audio codec data e\n");
 				return;
 			}
@@ -839,7 +839,7 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 				g_print("unable to set the flag size\n");
 				return;
 			}
-			if (media_packet_set_codec_data(vid_pkt, vid_caps, strlen(vid_caps)+1)) {
+			if (media_packet_set_extra(vid_pkt, vid_caps)) {
 				g_print("unable to set the video codec data e\n");
 				return;
 			}
