@@ -260,7 +260,7 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 	enc_vide_pkt_available = 1;
 	uint64_t pts, dts, duration, size;
 	media_buffer_flags_e flags;
-	void *codec_data;
+	char *codec_data;
 	void *pkt_data;
 	unsigned int codec_data_size;
 
@@ -276,7 +276,8 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 	media_packet_get_duration(pkt, &duration);
 	/* offset */
 	media_packet_get_flags(pkt, &flags);
-	media_packet_get_codec_data(pkt,&codec_data,&codec_data_size);
+	media_packet_get_extra(pkt,(void**)&codec_data);
+	codec_data_size = strlen(codec_data)+1;
 
 	g_print("***pkt attributes before writing *** Size=%"PRIu64", pts=%"PRIu64", dts=%"PRIu64", duration=%"PRIu64", flags=%d\n",size,pts,dts,duration,(int)flags);
 	g_print("Codec_data=%s\ncodec_data_size = %d\n",(char*)codec_data,codec_data_size);
@@ -731,7 +732,7 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (media_packet_set_codec_data(aud_pkt, aud_caps, strlen(aud_caps)+1)) {
+			if (media_packet_set_extra(aud_pkt, aud_caps)) {
 				g_print("unable to set the audio codec data e\n");
 				return;
 			}
@@ -839,7 +840,7 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 				g_print("unable to set the flag size\n");
 				return;
 			}
-			if (media_packet_set_codec_data(vid_pkt, vid_caps, strlen(vid_caps)+1)) {
+			if (media_packet_set_extra(vid_pkt, vid_caps)) {
 				g_print("unable to set the video codec data e\n");
 				return;
 			}
