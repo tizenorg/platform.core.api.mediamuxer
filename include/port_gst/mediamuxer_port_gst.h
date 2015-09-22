@@ -23,6 +23,9 @@
 #include <gst/app/gstappsrc.h>
 #include <gst/video/video-format.h>
 
+#define MAX_STRING_LENGTH 25
+#define NO_OF_TRACK_TYPES 3	/* Audio, Video and Subtitle */
+
 #define MEDIAMUXER_ELEMENT_SET_STATE( x_element, x_state ) \
 	MX_I("setting state [%s:%d] to [%s]\n", #x_state, x_state, GST_ELEMENT_NAME( x_element ) ); \
 	if ( GST_STATE_CHANGE_FAILURE == gst_element_set_state ( x_element, x_state) ) \
@@ -49,25 +52,29 @@ typedef struct _mx_gst_track {
 	int track_index;
 	int start_feed;
 	int stop_feed;
+	GstElement *appsrc;		/* Input buffers to be muxed */
+	GstElement *parser;
+	struct _mx_gst_track *next;
 } mx_gst_track;
+
+typedef struct track_info {
+	int audio_track_cnt;
+	int video_track_cnt;
+	int subtitle_track_cnt;
+	int total_track_cnt;
+	mx_gst_track *track_head;
+} mx_gst_track_info;
 
 typedef struct _mxgst_handle_t {
 	void *hmux;			/**< mux handle */
 	int state;			/**< mx current state */
 	bool is_prepared;
-
-	mx_gst_track video_track;
-	mx_gst_track audio_track;
-
+	mx_gst_track_info track_info;
 	mediamuxer_output_format_e muxed_format;
 	char *output_uri;
 	bool eos_flg;
 	guint bus_watch_id;
 	GstElement *pipeline;
-	GstElement *audio_appsrc;		/* Input audio buffers to be muxed */
-	GstElement *video_appsrc;		/* Input video buffers to be muxed */
-	GstElement *audioparse;
-	GstElement *videoparse;
 	GstElement *muxer;
 	GstElement *sink;			/* sink for the muxed output */
 	char *saveLocation;			/* Save path for muxed data */

@@ -98,20 +98,11 @@ static int gst_muxer_init(MMHandleType *pHandle)
 	/* Set desired parameters */
 	new_mediamuxer->output_uri = NULL;
 	new_mediamuxer->muxed_format = -1;
-	new_mediamuxer->video_track.media_format = NULL;
-	new_mediamuxer->audio_track.media_format = NULL;
-	new_mediamuxer->video_track.track_index = -1;
-	new_mediamuxer->audio_track.track_index = -1;
-	new_mediamuxer->video_track.start_feed = 1;
-	new_mediamuxer->audio_track.start_feed = 1;
-	new_mediamuxer->video_track.stop_feed = 0;
-	new_mediamuxer->audio_track.stop_feed = 0;
-
-	MX_I("V.start_feed[%d],V.stop_feed[%d],A.start_feed[%d],A.stop_feed[%d]\n",
-	     new_mediamuxer->video_track.start_feed,
-	     new_mediamuxer->video_track.stop_feed,
-	     new_mediamuxer->audio_track.start_feed,
-	     new_mediamuxer->audio_track.stop_feed);
+	new_mediamuxer->track_info.audio_track_cnt = 0;
+	new_mediamuxer->track_info.video_track_cnt = 0;
+	new_mediamuxer->track_info.subtitle_track_cnt = 0;
+	new_mediamuxer->track_info.total_track_cnt = 0;
+	new_mediamuxer->track_info.track_head = NULL;
 
 	new_mediamuxer->eos_flg = false;
 	*pHandle = (MMHandleType) new_mediamuxer;
@@ -149,26 +140,48 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *mx_handle_gst = (mxgst_handle_t *) pHandle;
-
 	media_format_mimetype_e mimetype = 0;
+	mx_gst_track *current = NULL;
+	mx_gst_track *last = NULL;
+
+	current = (mx_gst_track *)g_malloc(sizeof(mx_gst_track));
+	if (!current) {
+		MX_E("Not able to allocate memory\n");
+		return MX_ERROR;
+	}
+	MX_I("Memory allocated to track = %p\n", current);
+	current->media_format = (void *)media_format;
+	current->start_feed = 1;
+	current->stop_feed = 0;
+	current->caps = NULL;
+	current->next = NULL;
+	if (mx_handle_gst->track_info.track_head == NULL) {
+		MX_I("Adding first-ever track\n");
+		mx_handle_gst->track_info.track_head = current;
+	} else {
+		MX_I("Adding %d-track)\n",1+mx_handle_gst->track_info.total_track_cnt);
+		last = mx_handle_gst->track_info.track_head;
+		while (last->next != NULL)
+			last = last->next;
+		/* Add current track after present-last */
+		last->next = current;
+	}
+
 	if (media_format_get_video_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
                                                                     MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
 		if (mimetype == MEDIA_FORMAT_H264_SP  ||
 		    mimetype == MEDIA_FORMAT_H264_MP ||
 		    mimetype == MEDIA_FORMAT_H264_HP) {
-			if (mx_handle_gst->video_track.media_format == NULL) {
-				mx_handle_gst->video_track.media_format = (void *)media_format;
-				/* ToDo: track_index should be incremented accordingly for multiple tracks */
-				mx_handle_gst->video_track.track_index = 1;
-				mx_handle_gst->video_track.caps = NULL;
-				*track_index = mx_handle_gst->video_track.track_index;
-				MX_I("Video track added successfully: %p \n", mx_handle_gst->video_track.media_format);
-			} else {
-				MX_E("muxer handle already have a video track, \
-				add failed, as Multiple video tracks are not currently supported");
-				ret = MX_ERROR_NOT_SUPPORT_API;
-				goto ERROR;
-			}
+
+			current->track_index = NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.video_track_cnt);
+			(mx_handle_gst->track_info.video_track_cnt)++;
+			(mx_handle_gst->track_info.total_track_cnt)++;
+			*track_index = current->track_index;
+
+			MX_I("Video track added successfully: %p \n", current->media_format);
+			MX_I("Video track added successfully_head: %p \n", mx_handle_gst->track_info.track_head->media_format);
+		}  else {
+			MX_E("Unsupported MIME Type\n");
 		}
 	} else if (media_format_get_audio_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
 	                                                                MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
@@ -176,19 +189,15 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		    mimetype == MEDIA_FORMAT_AAC_LC ||
 		    mimetype == MEDIA_FORMAT_AAC_HE ||
 		    mimetype == MEDIA_FORMAT_AAC_HE_PS)  {
-			if (mx_handle_gst->audio_track.media_format == NULL) {
-				mx_handle_gst->audio_track.media_format = (void *)media_format;
-				/* ToDo: track_index should be incremented accordingly for multiple tracks */
-				mx_handle_gst->audio_track.track_index = 2;
-				mx_handle_gst->audio_track.caps = NULL;
-				*track_index = mx_handle_gst->audio_track.track_index;
-				MX_I("Audio track added successfully: %p \n", mx_handle_gst->audio_track.media_format);
-			} else {
-				MX_E("muxer handle already have a audio track, add failed, \
-				as Multiple audio tracks are not currently supported");
-				ret = MX_ERROR_NOT_SUPPORT_API;
-				goto ERROR;
-			}
+
+			current->track_index = 1 + NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.audio_track_cnt);
+			(mx_handle_gst->track_info.audio_track_cnt)++;
+			(mx_handle_gst->track_info.total_track_cnt)++;
+			*track_index = current->track_index;
+
+			MX_I("Audio track added successfully: %p \n", current->media_format);
+			MX_I("Audio track added successfully_head: %p \n", mx_handle_gst->track_info.track_head->media_format);
+
 		} else {
 			MX_E("Unsupported MIME Type\n");
 		}
@@ -331,36 +340,48 @@ static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
   * This signal callback triggers when appsrc needs mux_data.
   * Here, we add an idle handler to the mainloop to start pushing data into the appsrc
   */
-static void _audio_start_feed(GstElement *source, guint size, mxgst_handle_t *gst_handle)
+static void _audio_start_feed(GstElement *source, guint size, mx_gst_track *current)
 {
-	MX_I("\nAudio Start feeding...\n");
-	gst_handle->audio_track.stop_feed = 0;
-	gst_handle->audio_track.start_feed = 1;
+	if (current) {
+		MX_I("\nAudio Start feeding..., current->track_index = %d\n",current->track_index);
+		current->stop_feed = 0;
+		current->start_feed = 1;
+	} else
+		MX_I("Audio start feed called, however current handle is null\n");
 }
 
-static void _video_start_feed(GstElement *source, guint size, mxgst_handle_t *gst_handle)
+static void _video_start_feed(GstElement *source, guint size, mx_gst_track *current)
 {
-	MX_I("\nVideo Start feeding cb...\n");
-	gst_handle->video_track.stop_feed = 0;
-	gst_handle->video_track.start_feed = 1;
+	if (current) {
+		MX_I("\nVideo Start feeding cb... current->track_index = %d\n",current->track_index);
+		current->stop_feed = 0;
+		current->start_feed = 1;
+	} else
+		MX_I("Video start feed called, however, current is null\n");
 }
 
 /*
   * This callback triggers when appsrc has enough data and we can stop sending.
   * We remove the idle handler from the mainloop.
   */
-static void _audio_stop_feed(GstElement *source, mxgst_handle_t *gst_handle)
+static void _audio_stop_feed(GstElement *source, mx_gst_track *current)
 {
-	MX_I("\nAudio Stop feeding cb...\n");
-	gst_handle->audio_track.stop_feed = 1;
-	gst_handle->audio_track.start_feed = 0;
+	if (current) {
+		MX_I("\nAudio Stop feeding cb... current->track_index = %d\n",current->track_index);
+		current->stop_feed = 1;
+		current->start_feed = 0;
+	} else
+		MX_I("Audio stop feed called, however, current is null\n");
 }
 
-static void _video_stop_feed(GstElement *source, mxgst_handle_t *gst_handle)
+static void _video_stop_feed(GstElement *source, mx_gst_track *current)
 {
-	MX_I("\nVideo Stop feeding...\n");
-	gst_handle->video_track.stop_feed = 1;
-	gst_handle->video_track.start_feed = 0;
+	if (current) {
+		MX_I("\nVideo Stop feeding... current->track_index = %d\n",current->track_index);
+		current->stop_feed = 1;
+		current->start_feed = 0;
+	} else
+		MX_I("Video stop feed called, however, current is null\n");
 }
 
 mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
@@ -370,6 +391,12 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	GstBus *bus = NULL;
 	/* Note: Use a loop, if needed. GMainLoop *loop; */
 	GstPad *audio_pad, *video_pad, *aud_src, *vid_src;
+	char str_appsrc[MAX_STRING_LENGTH];
+	char str_parser[MAX_STRING_LENGTH];
+	char track_no[MAX_STRING_LENGTH];
+	int vid_track_cnt = 0;
+	int aud_track_cnt = 0;
+	mx_gst_track *current = NULL;
 
 	/* Initialize GStreamer */
 	/* Note: Replace the arguments of gst_init to pass the command line args to GStreamer. */
@@ -378,110 +405,120 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	/* Create the empty pipeline */
 	gst_handle->pipeline = gst_pipeline_new("Muxer Gst pipeline");
 
+	/* Link the pipeline */
+	gst_handle->sink = gst_element_factory_make("filesink", "muxer filesink");
+
 	if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4) {
 		gst_handle->muxer = gst_element_factory_make("qtmux", "media-muxer");
 		/* gst_element_factory_make("mp4mux", "media-muxer"); */
-		if (gst_handle->video_track.track_index == 1) { /* Video track */
-			gst_handle->video_appsrc = gst_element_factory_make("appsrc", "video appsrc");
-			gst_handle->videoparse = gst_element_factory_make("h264parse", "h264parse");
+
+		if ((!gst_handle->pipeline) || (!gst_handle->muxer) || (!gst_handle->sink)) {
+			MX_E("One element could not be created. Exiting.\n");
+			ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
+			goto ERROR;
 		}
-		if (gst_handle->audio_track.track_index == 2) { /* Audio track */
-			gst_handle->audio_appsrc = gst_element_factory_make("appsrc", "audio appsrc");
-			gst_handle->audioparse = gst_element_factory_make("aacparse", "aacparse");
+
+		/* Build the pipeline */
+		gst_bin_add_many(GST_BIN(gst_handle->pipeline), gst_handle->muxer, gst_handle->sink, NULL);
+
+		if (!gst_element_link(gst_handle->muxer, gst_handle->sink))
+			MX_E("muxer-sink link failed");
+
+		if (gst_handle->track_info.video_track_cnt) { /* Video track(s) exist */
+			for (current = gst_handle->track_info.track_head; current; current = current->next) {
+				if (current->track_index%NO_OF_TRACK_TYPES == 0) { /* Video track */
+
+					sprintf(str_appsrc,"video_appsrc%d",current->track_index);
+					sprintf(str_parser,"video_parser%d",current->track_index);
+
+					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
+					current->parser = gst_element_factory_make("h264parse", str_parser);
+
+					if ((!current->appsrc)  || (!current->parser)) {
+						MX_E("One element (video_appsrc/vparse) could not be created. Exiting.\n");
+						ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
+						goto ERROR;
+					}
+
+					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, current->parser, NULL);
+
+					/* Set video caps for corresponding src elements */
+					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
+
+#ifdef ASYCHRONOUS_WRITE
+					/* ToDo: Use a function pointer, and create independent fucntions to each track */
+					g_signal_connect(current->appsrc, "need-data",
+						G_CALLBACK(_video_start_feed), current);
+					g_signal_connect(current->appsrc, "enough-data",
+						G_CALLBACK(_video_stop_feed), current);
+#else
+					g_object_set(current->appsrc, "block", TRUE, NULL);
+					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
+		                        GST_APP_STREAM_TYPE_STREAM);
+#endif
+					gst_element_link(current->appsrc, current->parser);
+
+					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
+					sprintf(track_no,"video_%.2d",vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
+
+					video_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
+					vid_src = gst_element_get_static_pad(current->parser, "src");
+
+					if (gst_pad_link(vid_src, video_pad) != GST_PAD_LINK_OK)
+						MX_E("video parser to muxer link failed");
+				}
+			}
+		}
+
+		if (gst_handle->track_info.audio_track_cnt) { /* Audio track(s) exist */
+			for (current = gst_handle->track_info.track_head; current; current = current->next) {
+				if (current->track_index%NO_OF_TRACK_TYPES == 1) {
+
+					sprintf(str_appsrc,"audio_appsrc%d",current->track_index);
+					sprintf(str_parser,"audio_parser%d",current->track_index);
+
+					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
+					current->parser = gst_element_factory_make("aacparse", str_parser);
+
+					if (!current->appsrc || !current->parser) {
+						MX_E("One element (audio_appsrc/aparse) could not be created. Exiting.\n");
+						ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
+						goto ERROR;
+					}
+
+					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, current->parser, NULL);
+					/* Set video caps for corresponding src elements */
+					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
+
+#ifdef ASYCHRONOUS_WRITE
+					/* ToDo: Use a function pointer, and create independent fucntions to each track */
+					MX_I("\nRegistering callback for cur->tr_ind = %d",current->track_index);
+					g_signal_connect(current->appsrc, "need-data",
+						G_CALLBACK(_audio_start_feed), current);
+					g_signal_connect(current->appsrc, "enough-data",
+						G_CALLBACK(_audio_stop_feed), current);
+#else
+					g_object_set(current->appsrc, "block", TRUE, NULL);
+					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
+		                        GST_APP_STREAM_TYPE_STREAM);
+#endif
+
+					gst_element_link(current->appsrc, current->parser);
+					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
+					sprintf(track_no,"audio_%.2d",aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
+
+					audio_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
+					aud_src = gst_element_get_static_pad(current->parser, "src");
+
+					if (gst_pad_link(aud_src, audio_pad) != GST_PAD_LINK_OK)
+						MX_E("audio parser to muxer link failed");
+				}
+			}
 		}
 	} else {
-		MX_E("Unsupported format. Currently suports only MPEG4");
+		MX_E("Unsupported format. Currently suports only MP4");
 		ret = MEDIAMUXER_ERROR_INVALID_PATH;
 		goto ERROR;
-	}
-	gst_handle->sink = gst_element_factory_make("filesink", "muxer filesink");
-
-	if (!gst_handle->pipeline || !gst_handle->muxer || !gst_handle->sink) {
-		MX_E("One element could not be created. Exiting.\n");
-		ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
-		goto ERROR;
-	}
-
-	/* Build the pipeline */
-	gst_bin_add_many(GST_BIN(gst_handle->pipeline),
-	                                                    gst_handle->muxer,
-	                                                    gst_handle->sink,
-	                                                    NULL);
-
-	if (gst_handle->video_track.track_index == 1) {
-		/* video track */
-		if (!gst_handle->video_appsrc || !gst_handle->videoparse) {
-			MX_E("One element (vparse) could not be created. Exiting.\n");
-			ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
-			goto ERROR;
-		}
-		gst_bin_add_many(GST_BIN(gst_handle->pipeline),
-                                                                    gst_handle->video_appsrc,
-                                                                    gst_handle->videoparse,
-                                                                    NULL);
-		/* Set video caps for corresponding src elements */
-		g_object_set(gst_handle->video_appsrc, "caps",
-		                        gst_caps_from_string(gst_handle->video_track.caps), NULL);
-#ifdef ASYCHRONOUS_WRITE
-		g_signal_connect(gst_handle->video_appsrc, "need-data",
-		                        G_CALLBACK(_video_start_feed), gst_handle);
-		g_signal_connect(gst_handle->video_appsrc, "enough-data",
-		                        G_CALLBACK(_video_stop_feed), gst_handle);
-#else
-		g_object_set(gst_handle->video_appsrc, "block", TRUE, NULL);
-		gst_app_src_set_stream_type((GstAppSrc *)gst_handle->video_appsrc,
-		                        GST_APP_STREAM_TYPE_STREAM);
-#endif
-	}
-
-	if (gst_handle->audio_track.track_index == 2) {
-		/* Audio track */
-		if (!gst_handle->audio_appsrc || !gst_handle->audioparse) {
-			MX_E("One element (aparse) could not be created. Exiting.\n");
-			ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
-			goto ERROR;
-		}
-		gst_bin_add_many(GST_BIN(gst_handle->pipeline),
-                                                                    gst_handle->audio_appsrc,
-                                                                    gst_handle->audioparse,
-                                                                    NULL);
-		/* Set audio caps for corresponding src elements */
-		g_object_set(gst_handle->audio_appsrc, "caps",
-		                        gst_caps_from_string(gst_handle->audio_track.caps), NULL);
-#ifdef ASYCHRONOUS_WRITE
-		g_signal_connect(gst_handle->audio_appsrc, "need-data",
-		                        G_CALLBACK(_audio_start_feed), gst_handle);
-		g_signal_connect(gst_handle->audio_appsrc, "enough-data",
-		                        G_CALLBACK(_audio_stop_feed), gst_handle);
-#else
-		g_object_set(gst_handle->audio_appsrc, "block", TRUE, NULL);
-		gst_app_src_set_stream_type((GstAppSrc *)gst_handle->audio_appsrc,
-		                        GST_APP_STREAM_TYPE_STREAM);
-#endif
-	}
-
-	if (!gst_element_link(gst_handle->muxer, gst_handle->sink))
-		MX_E("muxer-sink link failed");
-
-	if (gst_handle->video_track.track_index == 1) {
-		/* video track */
-		gst_element_link(gst_handle->video_appsrc, gst_handle->videoparse);
-		/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-		video_pad = gst_element_get_request_pad(gst_handle->muxer, "video_00");
-		vid_src = gst_element_get_static_pad(gst_handle->videoparse, "src");
-		if (gst_pad_link(vid_src, video_pad) != GST_PAD_LINK_OK)
-			MX_E("video parser to muxer link failed");
-	}
-
-	if (gst_handle->audio_track.track_index == 2) {
-		/* audio track */
-		/* we add all elements into the pipeline */
-		gst_element_link(gst_handle->audio_appsrc, gst_handle->audioparse);
-		/* Link audioparse to muxer_audio_pad.   Request for muxer A/V pads. */
-		audio_pad = gst_element_get_request_pad(gst_handle->muxer, "audio_00");
-		aud_src = gst_element_get_static_pad(gst_handle->audioparse, "src");
-		if (gst_pad_link(aud_src, audio_pad) != GST_PAD_LINK_OK)
-			MX_E("audio parser to muxer link failed");
 	}
 
 	MX_I("Output_uri= %s\n", gst_handle->output_uri);
@@ -504,19 +541,11 @@ ERROR:
 	if (gst_handle->pipeline)
 		gst_object_unref(GST_OBJECT(gst_handle->pipeline));
 
-	if (gst_handle->video_track.track_index == 1) { /* Video track */
-		if (gst_handle->videoparse)
-			gst_object_unref(GST_OBJECT(gst_handle->videoparse));
-
-		if (gst_handle->video_appsrc)
-			gst_object_unref(GST_OBJECT(gst_handle->video_appsrc));
-	}
-
-	if (gst_handle->audio_track.track_index == 2) { /* audio track */
-		if (gst_handle->audio_appsrc)
-			gst_object_unref(GST_OBJECT(gst_handle->audio_appsrc));
-		if (gst_handle->audioparse)
-			gst_object_unref(GST_OBJECT(gst_handle->audioparse));
+	for (current = gst_handle->track_info.track_head; current; current=current->next) {
+		if (current->appsrc)
+			gst_object_unref(GST_OBJECT(current->appsrc));
+		if (current->parser)
+			gst_object_unref(GST_OBJECT(current->parser));
 	}
 
 	if (gst_handle->muxer)
@@ -688,7 +717,7 @@ int __gst_codec_specific_caps(GstCaps *new_cap,
 }
 
 
-int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
+int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 {
 	MEDIAMUXER_FENTER();
 	gint ret = MX_ERROR_NONE;
@@ -706,11 +735,21 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 	int avg_bps;
 	int max_bps;
 	gchar *caps_string = NULL;
-
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
 	media_format_type_e formattype;
 	char *codec_data;
 	unsigned int codec_data_size;
+	mx_gst_track *current = NULL;
+
+	/* Reach that track index and set the codec data */
+	for (current = gst_handle->track_info.track_head; current; current = current->next)
+		if (current->track_index == track_index)
+			break;
+
+	if ((!current) || (current->track_index != track_index)) {
+		ret = MX_ERROR_COMMON_INVALID_ARGUMENT;
+		goto ERROR;
+	}
 
 	if (media_packet_get_format(packet, &format)) {
 		MX_E("media_format_get_formati call failed \n");
@@ -724,6 +763,11 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 
 	switch (formattype) {
 		case MEDIA_FORMAT_AUDIO:
+			/* Following check is safe but not mandatory. */
+			if ((current->track_index)%NO_OF_TRACK_TYPES != 1) {
+				MX_E("\n\nThis is not an audio track_index. Track_index is not in 3*n+1 format\n\n");
+				goto ERROR;
+			}
 			if (media_packet_get_extra(packet,
 			                                (void **)&codec_data)) {
 				MX_E("media_packet_get_extra call failed\n");
@@ -731,10 +775,10 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 				break;
 			}
 			codec_data_size = strlen(codec_data) + 1;
-			MX_I("extracted codec data is =%s size is %d\n",
-			     codec_data, codec_data_size);
-			if (gst_handle->audio_track.caps == NULL ||
-			    g_strcmp0(codec_data, gst_handle->audio_track.caps) != 0) {
+			MX_I("Extracted codec data is =%s size is %d\n", codec_data, codec_data_size);
+
+			if (current->caps == NULL ||
+			    g_strcmp0(codec_data, current->caps) != 0) {
 
 #ifndef SEND_FULL_CAPS_VIA_CODEC_DATA
 
@@ -745,12 +789,10 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
-				if (gst_handle->audio_track.caps == NULL) {
-					gst_handle->audio_track.caps =
-					    (char *)g_malloc(codec_data_size);
-					if (gst_handle->audio_track.caps == NULL) {
-						MX_E("[%s][%d]memory allocation failed\n",
-						     __func__, __LINE__);
+				if (current->caps == NULL) {
+					current->caps = (char *)g_malloc(codec_data_size);
+					if (current->caps == NULL) {
+						MX_E("[%s][%d]memory allocation failed\n", __func__, __LINE__);
 						ret = MX_ERROR_UNKNOWN;
 						break;
 					}
@@ -763,37 +805,40 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 					break;
 				}
 				caps_string = gst_caps_to_string(new_cap);
-				MX_I("New cap set by codec data is=%s\n",
+				MX_I("New cap set by codec data is = %s\n",
 				     caps_string);
 				if (caps_string)
 					g_free(caps_string);
-				g_object_set(gst_handle->audio_appsrc,
+				g_object_set(current->appsrc,
 				             "caps", new_cap, NULL);
-				g_stpcpy(gst_handle->audio_track.caps, codec_data);
+				MX_I("copying   current->caps = codec_data\n");
+				g_stpcpy(current->caps, codec_data);
 #else
 				/*Debugging purpose. The whole caps filter can be sent via codec_data*/
 				new_cap = gst_caps_from_string(codec_data);
 				MX_I("codec  cap is=%s\n", codec_data);
-				g_object_set(gst_handle->audio_appsrc,
+				g_object_set(current->appsrc,
 				             "caps", new_cap, NULL);
-				if (gst_handle->audio_track.caps == NULL) {
-					gst_handle->audio_track.caps =
-					    (char *)g_malloc(codec_data_size);
-					if (gst_handle->audio_track.caps == NULL) {
-						MX_E("[%s][%d] \
-					memory allocation failed\n",
-						     __func__, __LINE__);
+				if (current->caps == NULL) {
+					current->caps = (char *)g_malloc(codec_data_size);
+					if (current->caps == NULL) {
+						MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
 						gst_caps_unref(new_cap);
 						ret = MX_ERROR_UNKNOWN;
 						break;
 					}
 				}
-				g_stpcpy(gst_handle->audio_track.caps, codec_data);
+				g_stpcpy(current->caps, codec_data);
 #endif
 				gst_caps_unref(new_cap);
 			}
 			break;
 		case MEDIA_FORMAT_VIDEO:
+			/* Following check is safe but not mandatory. */
+			if ((current->track_index)%NO_OF_TRACK_TYPES != 0) {
+				MX_E("\n\nThis is not an video track_index. Video track_index is not in 3*n format\n\n");
+				goto ERROR;
+			}
 			if (media_packet_get_extra(packet,
 			                                (void **)&codec_data)) {
 				MX_E("media_packet_get_extra call failed\n");
@@ -803,8 +848,8 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 			codec_data_size = strlen(codec_data) + 1;
 			MX_I("codec data is =%s size is %d\n",
 			     codec_data, codec_data_size);
-			if (gst_handle->video_track.caps == NULL ||
-			    g_strcmp0(codec_data, gst_handle->video_track.caps) != 0) {
+			if (current->caps == NULL ||
+			    g_strcmp0(codec_data, current->caps) != 0) {
 
 #ifndef SEND_FULL_CAPS_VIA_CODEC_DATA
 
@@ -815,42 +860,36 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
-				if (gst_handle->video_track.caps == NULL) {
-					gst_handle->video_track.caps =
-					    (char *)g_malloc(codec_data_size);
-					if (gst_handle->video_track.caps == NULL) {
-						MX_E("[%s][%d] \
-					memory allocation failed\n",
-						     __func__, __LINE__);
+				if (current->caps == NULL) {
+					current->caps = (char *)g_malloc(codec_data_size);
+					if (current->caps == NULL) {
+						MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
 						ret = MX_ERROR_UNKNOWN;
 						break;
 					}
 				}
 				new_cap = gst_caps_from_string(codec_data);
-				MX_I("New cap set by codec data is=%s\n",
-				     codec_data);
+				MX_I("New cap set by codec data is=%s\n", codec_data);
 				if (__gst_codec_specific_caps(new_cap, mimetype)) {
 					MX_E("Setting Audio caps failed\n");
 					gst_caps_unref(new_cap);
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
-				g_stpcpy(gst_handle->video_track.caps, codec_data);
+				g_stpcpy(current->caps, codec_data);
 
-				if (media_format_get_video_frame_rate(format,
-				                                      &numerator)) {
+				if (media_format_get_video_frame_rate(format, &numerator)) {
 					MX_E("media_format_get_video_info call failed\n");
 				}
 				g_value_init(&val, GST_TYPE_FRACTION);
 				gst_value_set_fraction(&val, numerator, denominator);
 				gst_caps_set_value(new_cap, "framerate", &val);
 				caps_string = gst_caps_to_string(new_cap);
-				MX_I("New cap set by codec data is=%s\n",
+				MX_I("New cap set by codec data is = %s\n",
 				     caps_string);
 				if (caps_string)
 					g_free(caps_string);
-				g_object_set(gst_handle->video_appsrc, "caps",
-				             new_cap, NULL);
+				g_object_set(current->appsrc, "caps", new_cap, NULL);
 #else
 				/*Debugging purpose. The whole caps filter can be sent via codec_data*/
 				media_packet_get_extra(packet, &codec_data);,
@@ -858,21 +897,17 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet)
 				MX_I("extracted codec data is =%s\n", codec_data);
 				new_cap = gst_caps_from_string(codec_data);
 				MX_I("New cap is=%s\n", codec_data);
-				g_object_set(gst_handle->video_appsrc, "caps",
-				             new_cap, NULL);
-				if (gst_handle->video_track.caps == NULL) {
-					gst_handle->video_track.caps =
-					    (char *)g_malloc(codec_data_size);
-					if (gst_handle->video_track.caps == NULL) {
-						MX_E("[%s][%d] \
-					memory allocation failed\n",
-						     __func__, __LINE__);
+				g_object_set(gst_handle->video_appsrc, "caps", new_cap, NULL);
+				if (current->caps == NULL) {
+					current->caps = (char *)g_malloc(codec_data_size);
+					if (current->caps == NULL) {
+						MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
 						gst_caps_unref(new_cap);
 						ret = MX_ERROR_UNKNOWN;
 						break;
 					}
 				}
-				g_stpcpy(gst_handle->video_track.caps, codec_data);
+				g_stpcpy(current->caps, codec_data);
 #endif
 				gst_caps_unref(new_cap);
 			}
@@ -968,51 +1003,69 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
+	mx_gst_track *current = NULL;
+	for (current = gst_handle->track_info.track_head; current; current = current->next)
+		if (current->track_index == track_index)
+			break;
 
-	_gst_set_caps(pHandle, inbuf);
-	MX_I("\nTrack_index=%d", track_index);
+	if ((!current) || (current->track_index != track_index)) {
+		MX_E("No tracks or mismatched track_index = %d\n", track_index);
+		if (current)
+			MX_E("\ncurrent->track_index=%d\n", current->track_index);
+		else if (gst_handle->track_info.track_head) {
+			MX_E("\n\ngst_handle->track_info.track_head->track_index=%d\n", gst_handle->track_info.track_head->track_index);
+			if (gst_handle->track_info.track_head->next)
+				MX_E("\n\next=%p\tnext->track_index=%d\n", gst_handle->track_info.track_head->next,gst_handle->track_info.track_head->next->track_index);
+		} else
+			MX_E("\n\n****Head is NULL****\n");
+		ret = MX_ERROR_INVALID_ARGUMENT;
+		goto ERROR;
+	}
+
+	_gst_set_caps(pHandle, inbuf, track_index);
+	MX_I("Track_index passed = %d, working-with_track_index = %d\n", track_index,current->track_index);
 
 	GstBuffer *gst_inbuf2 = NULL;
 	gst_inbuf2 = gst_buffer_new();
 	/* ToDo: Add functionality to the following function */
-	/* MX_I("\nBefore  buff=%x", gst_inbuf2); */
+	/* MX_I("\nBefore  buff=%x\n", gst_inbuf2); */
 	_gst_copy_media_packet_to_buf(inbuf, gst_inbuf2);
 
-	if ((gst_handle->video_track.track_index != -1) &&
-             (track_index == gst_handle->video_track.track_index)) {
-		MX_I("\n pushing video");
+	if (track_index%NO_OF_TRACK_TYPES == 0) {  /* NO_OF_TRACK_TYPES*n for video */
+		MX_I("Waiting till start_feed of current video track, index=%d is active\n",current->track_index);
 #ifdef ASYCHRONOUS_WRITE
 		/*poll now to make it synchronous*/
-		while (gst_handle->video_track.start_feed == 0) {
+		while (current->start_feed == 0)
 			g_usleep(WRITE_POLL_PERIOD);
-		}
-		g_signal_emit_by_name(gst_handle->video_appsrc, "push-buffer", gst_inbuf2, &ret);
+		MX_I("pushing video\n");
+
+		g_signal_emit_by_name(current->appsrc, "push-buffer", gst_inbuf2, &ret);
+
 #else
-		ret = gst_app_src_push_buffer((GstAppSrc *)gst_handle->video_appsrc, gst_inbuf2);
+		ret = gst_app_src_push_buffer((GstAppSrc *)current->appsrc, gst_inbuf2);
 #endif
-		MX_I("\n attempted a vid-buf push");
+		MX_I("attempted a vid-buf push\n");
 		if (ret != GST_FLOW_OK) {
 			/* We got some error, stop sending data */
-			MX_E("--video appsrc push failed--");
+			MX_E("--video appsrc push failed--\n");
 		}
-	} else if ((gst_handle->audio_track.track_index != -1) &&
-	                (track_index == gst_handle->audio_track.track_index)) {
-		MX_I("\n pushing audio");
+	} else if (track_index%NO_OF_TRACK_TYPES == 1) {	/* NO_OF_TRACK_TYPES*n+1 for audio */
+		MX_I(" Waiting till start_feed of current audio track, index=%d is active\n",current->track_index);
 #ifdef ASYCHRONOUS_WRITE
-		while (gst_handle->audio_track.start_feed == 0) {
+		while (current->start_feed == 0)
 			g_usleep(WRITE_POLL_PERIOD);
-		}
-		g_signal_emit_by_name(gst_handle->audio_appsrc, "push-buffer", gst_inbuf2, &ret);
+		MX_I("End of sleep, pushing audio\n");
+		g_signal_emit_by_name(current->appsrc, "push-buffer", gst_inbuf2, &ret);
 #else
-		ret = gst_app_src_push_buffer((GstAppSrc *)gst_handle->audio_appsrc, gst_inbuf2);
+		ret = gst_app_src_push_buffer((GstAppSrc *)current->appsrc, gst_inbuf2);
 #endif
-		MX_I("\n attempted a aud-buf push");
+		MX_I("Attempted a aud-buf push\n");
 		if (ret != GST_FLOW_OK) {
 			/* We got some error, stop sending data */
-			MX_E("--audio appsrc push failed--");
+			MX_E("--audio appsrc push failed--\n");
 		}
 	} else {
-		MX_E("\nUnsupported track index. Only 1/2 track index is vaild");
+		MX_E("Unsupported track index=%d. track_index-mod3= %d. Only 0/1/2 track index is vaild\n",track_index, track_index%NO_OF_TRACK_TYPES);
 		ret = MX_ERROR_INVALID_ARGUMENT;
 	}
 	MEDIAMUXER_FLEAVE();
@@ -1029,26 +1082,31 @@ static int gst_muxer_close_track(MMHandleType pHandle, int track_index)
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
+	mx_gst_track *current;
+	for (current = gst_handle->track_info.track_head; current; current = current->next)
+		if (current->track_index == track_index)
+			break;
+
+	if (!current || current->track_index != track_index)
+		goto ERROR;
 
 	MX_I("__gst_muxer_stop setting eos to sources:%p\n", gst_handle);
 	if (gst_handle->pipeline!= NULL) {
-		if (gst_handle->audio_track.track_index == track_index) {
-			MX_I("\n-----EOS for audioappsrc-----\n");
-			gst_app_src_end_of_stream((GstAppSrc *)(gst_handle->audio_appsrc));
-		} else if (gst_handle->video_track.track_index == track_index) {
+		if (track_index%NO_OF_TRACK_TYPES == 0) {
 			MX_I("\n-----EOS for videoappsrc-----\n");
-			gst_app_src_end_of_stream((GstAppSrc *)(gst_handle->video_appsrc));
+			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
+		} else if (track_index%NO_OF_TRACK_TYPES == 1) {
+			MX_I("\n-----EOS for audioappsrc-----\n");
+			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
 		} else {
 			MX_E("\nInvalid track Index[%d].\n", track_index);
 			goto ERROR;
 		}
 	}
-	if (gst_handle->audio_track.track_index == track_index) {
-		gst_handle->audio_track.media_format = NULL;
-		gst_handle->audio_track.track_index  = -1;
-	} else if (gst_handle->video_track.track_index == track_index) {
-		gst_handle->video_track.media_format = NULL;
-		gst_handle->video_track.track_index  = -1;
+	/* Reset the media_format and track_index to default. */
+	if (current) {
+		current->media_format = NULL;
+		current->track_index = -1;
 	}
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -1137,6 +1195,7 @@ mx_ret_e _gst_destroy_pipeline(mxgst_handle_t *gst_handle)
 {
 	gint ret = MX_ERROR_NONE;
 	MEDIAMUXER_FENTER();
+	mx_gst_track *current = NULL, *prev;
 
 	/* Clean up nicely */
 	gst_element_set_state(gst_handle->pipeline, GST_STATE_NULL);
@@ -1146,24 +1205,15 @@ mx_ret_e _gst_destroy_pipeline(mxgst_handle_t *gst_handle)
 		gst_handle->output_uri = NULL;
 	}
 
-	if (gst_handle->video_track.track_index == 1) { /* Video track */
-		if (gst_handle->video_track.caps != NULL) {
-			g_free(gst_handle->video_track.caps);
-		}
-
-		if (gst_handle->video_track.media_format != NULL) {
-			gst_handle->video_track.media_format = NULL;
-		}
-	}
-
-	if (gst_handle->audio_track.track_index == 2) { /* audio track */
-		if (gst_handle->audio_track.caps != NULL) {
-			g_free(gst_handle->audio_track.caps);
-		}
-
-		if (gst_handle->audio_track.media_format != NULL) {
-			gst_handle->audio_track.media_format = NULL;
-		}
+	current = gst_handle->track_info.track_head;
+	while (current) {
+		prev = current;
+		if (current->media_format)
+			current->media_format = NULL;
+		if (current->caps)
+			g_free(current->caps);
+		current = current->next;
+		g_free(prev);
 	}
 
 	if (gst_handle->pipeline)

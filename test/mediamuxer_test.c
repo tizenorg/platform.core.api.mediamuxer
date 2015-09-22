@@ -103,13 +103,16 @@ static int bitrate = DEFAULT_BITRATE;
 static int samplebyte = DEFAULT_SAMPLEBYTE;
 int iseos_codec = 0;
 bool validate_with_codec = false;
+bool validate_multitrack = false;
 
 bool aud_eos = 0;
 bool vid_eos = 0;
 char *aud_caps, *vid_caps;
 char file_mp4[1000];
 bool have_mp4 = false;
-int track_index_vid, track_index_aud;
+bool have_vid_track = false;
+bool have_aud_track = false;
+int track_index_vid, track_index_aud, track_index_aud2;
 
 /* demuxer sturcture for _demux_mp4() */
 typedef struct _CustomData
@@ -139,8 +142,8 @@ typedef struct _CustomData
 static void _mediacodec_eos_cb(void *user_data)
 {
 	g_print("\n\n\n\n event : eos_cb \n\n\n");
-	int track_index_vid = 1;
-	int track_index_aud = 2;
+	int track_index_vid = 0;
+	int track_index_aud = 1;
 	if (use_video == 1)
 		mediamuxer_close_track(myMuxer, track_index_vid);
 	else if (use_video == 0)
@@ -255,12 +258,12 @@ void _add_adts_header_for_aacenc(unsigned char *buffer, int packetLen) {
 static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 {
 	g_print("**** Entered _mediacodec_fill_buffer_cb *****\n");
-	int track_index_aud = 2;
+	int track_index_aud = 1;
 	static int count = -1;
 	enc_vide_pkt_available = 1;
 	uint64_t pts, dts, duration, size;
 	media_buffer_flags_e flags;
-	char *codec_data;
+	void *codec_data;
 	void *pkt_data;
 	unsigned int codec_data_size;
 
@@ -295,7 +298,7 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 
 	/* EOS hack for mediacodec */
 	if (count == 1758) {  /* Last buffer for SampleAAC.aac. should be replaced with a valid eos. */
-		g_print("\nLast Buffer Reached");
+		g_print("Last Buffer Reached\n");
 #if DUMP_OUTBUF
 		fclose(fp_in);
 #endif
@@ -655,7 +658,8 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 	GstBuffer *buffer;
 	media_format_h audfmt;
 	media_packet_h aud_pkt;
-	track_index_aud = 2;	/* track_index=2 for audio */
+	track_index_aud = 1;	/* track_index=1 for audio */
+	track_index_aud2 = 4;   /* track_index=4 for audio2 */
 	guint8 *dptr;
 	static int count = 0;
 	GstSample *sample;
@@ -742,6 +746,9 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 					++count, ns, buffer->pts);
 			//g_print("Audio write sample call. packet add : %p\n", aud_pkt);
 			mediamuxer_write_sample(myMuxer, track_index_aud, aud_pkt);
+			if (validate_multitrack)
+				mediamuxer_write_sample(myMuxer, track_index_aud2, aud_pkt);
+
 			media_packet_destroy(aud_pkt);
 		}
 	}
@@ -753,7 +760,7 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 	GstBuffer *buffer;
 	media_format_h vidfmt;
 	media_packet_h vid_pkt;
-	track_index_vid = 1; /* track_index=1 for video */
+	track_index_vid = 0; /* track_index=1 for video */
 	uint64_t ns;
 	static int count = 0;
 	unsigned int vsize;
@@ -860,9 +867,11 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 static void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
 {
 	mediamuxer_close_track(myMuxer, track_index_aud);
+	if (validate_multitrack)
+		mediamuxer_close_track(myMuxer, track_index_aud2);
 	g_print("audio (AAC) EOS cb reached \n");
 	aud_eos = 1;
-	if (vid_eos == 1)
+	if (!have_vid_track || vid_eos == 1)
 		g_main_loop_quit(data->loop);
 }
 
@@ -872,7 +881,7 @@ static void __video_app_sink_eos_callback(GstElement *sink, CustomData *data)
 	mediamuxer_close_track(myMuxer, track_index_vid);
 	g_print("video (h264) EOS cb reached \n");
 	vid_eos = 1;
-	if (aud_eos == 1)
+	if (!have_aud_track || aud_eos == 1)
 		g_main_loop_quit(data->loop);
 }
 
@@ -894,7 +903,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 	new_pad_struct = gst_caps_get_structure(new_pad_caps, 0);
 	new_pad_type = gst_structure_get_name(new_pad_struct);
 
-	if (g_str_has_prefix(new_pad_type, "audio/mpeg")) {
+	if (have_aud_track && g_str_has_prefix(new_pad_type, "audio/mpeg")) {
 		new_pad_aud_caps = gst_pad_get_current_caps(pad);
 		caps = gst_caps_to_string(new_pad_aud_caps);
 		g_print("   Audio caps :%s\n", caps);
@@ -914,7 +923,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 		/* Link audioqueue->audio_appsink and save/Give to appsrc of muxer */
 		gst_element_set_state(data->audio_appsink, GST_STATE_PLAYING);
 		/* one has to set the newly added element to the same state as the rest of the elements. */
-	} else if (g_str_has_prefix(new_pad_type, "video/x-h264")) {
+	} else if (have_vid_track && g_str_has_prefix(new_pad_type, "video/x-h264")) {
 		new_pad_vid_caps = gst_pad_get_current_caps(pad);
 		caps = gst_caps_to_string(new_pad_vid_caps);
 		g_print("   Video caps :%s\n",caps);
@@ -955,7 +964,7 @@ static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
 	switch (GST_MESSAGE_TYPE(mesg))
 	{
 		case GST_MESSAGE_EOS:
-			g_print("End of stream\n");
+			g_print("Demuxer: End of stream\n");
 			g_main_loop_quit(dmxr_loop);
 			break;
 
@@ -965,7 +974,7 @@ static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
 			GError *err;
 			gst_message_parse_error(mesg, &err, &dbg);
 			g_free(dbg);
-			g_printerr("Demuxer-Error:%s \n", err->message);
+			g_printerr("Demuxer-Error: %s\n", err->message);
 			g_error_free(err);
 			g_main_loop_quit(dmxr_loop);
 			break;
@@ -1162,6 +1171,12 @@ int test_mediamuxer_add_track_audio()
 
 	/* To add audio track */
 	mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud);
+
+	if (validate_multitrack) {
+		mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud2);
+		g_print("Audio Track index is returned : %d\n", track_index_aud2);
+	}
+
 	g_print("Audio Track index is returned : %d\n", track_index_aud);
 	return 0;
 }
@@ -1196,7 +1211,7 @@ int test_mediamuxer_pause()
 	g_print("test_mediamuxer_pause\n");
 	mediamuxer_state_e state;
 	if (mediamuxer_get_state(myMuxer, &state) == MEDIAMUXER_ERROR_NONE) {
-		g_print("\nMediamuxer_state=%d",state);
+		g_print("Mediamuxer_state=%d\n",state);
 		if (state == MEDIAMUXER_STATE_MUXING)
 			mediamuxer_pause(myMuxer);
 	}
@@ -1297,18 +1312,22 @@ void _interpret_main_menu(char *cmd)
 		} else if (strncmp(cmd, "s", 1) == 0) {
 			test_mediamuxer_start();
 		} else if (strncmp(cmd, "a", 1) == 0) {
-			if (!validate_with_codec)
+			if (!validate_with_codec) {
+				have_aud_track = true;
 				if (have_mp4 == false) {
 					g_menu_state = CURRENT_STATUS_MP4_FILENAME;
 					have_mp4 = true;
 				}
+			}
 			test_mediamuxer_add_track_audio();
 		} else if (strncmp(cmd, "v", 1) == 0) {
-			if (!validate_with_codec)
+			if (!validate_with_codec) {
+				have_vid_track = true;
 				if (have_mp4 == false) {
 					g_menu_state = CURRENT_STATUS_MP4_FILENAME;
 					have_mp4 = true;
 				}
+			}
 			test_mediamuxer_add_track_video();
 		} else if (strncmp(cmd, "m", 1) == 0) {
 			test_mediamuxer_write_sample();
@@ -1550,6 +1569,8 @@ int main(int argc, char *argv[])
 		/* Check whether validation with media codec is required */
 		if (argv[1][0] == '-' && argv[1][1] == 'c')
 			validate_with_codec = true;
+		if (argv[1][0] == '-' && argv[1][1] == 'm')
+			validate_multitrack = true;
 	}
 
 	displaymenu();
