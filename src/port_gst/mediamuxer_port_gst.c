@@ -1122,13 +1122,14 @@ static int gst_muxer_pause(MMHandleType pHandle)
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
-
 	GstState state;
+
 	MX_I("gst_muxer_pause setting pipeline to pause");
 	gst_element_get_state(gst_handle->pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
+
 	if (state == GST_STATE_PLAYING) {
-		if (gst_element_set_state(gst_handle->pipeline, GST_STATE_PAUSED) ==
-                        GST_STATE_CHANGE_FAILURE) {
+		if (gst_element_set_state(gst_handle->pipeline, GST_STATE_PAUSED)
+			== GST_STATE_CHANGE_FAILURE) {
 			MX_I("Setting pipeline to pause failed");
 			ret = MX_ERROR_INVALID_ARGUMENT;
 		}
@@ -1152,9 +1153,9 @@ static int gst_muxer_resume(MMHandleType pHandle)
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
 
-	MX_I("gst_muxer_resume setting pipeline to playing");
-	if (gst_element_set_state(gst_handle->pipeline, GST_STATE_PLAYING) ==
-                GST_STATE_CHANGE_FAILURE) {
+	MX_I("gst_muxer_resume setting pipeline back to playing");
+	if (gst_element_set_state(gst_handle->pipeline, GST_STATE_PLAYING)
+		== GST_STATE_CHANGE_FAILURE) {
 		MX_I("Setting pipeline to resume failed");
 		ret = MX_ERROR_INVALID_ARGUMENT;
 	}

@@ -249,9 +249,9 @@ int mediamuxer_pause(mediamuxer_h muxer)
 	int ret = MEDIAMUXER_ERROR_NONE;
 	MUXER_INSTANCE_CHECK(muxer);
 	mediamuxer_s *handle = (mediamuxer_s *)(muxer);
-	ret = mx_pause(handle->mx_handle);
-	if (handle->muxer_state == MEDIAMUXER_STATE_READY
-		|| handle->muxer_state == MEDIAMUXER_STATE_MUXING) {
+
+	if (handle->muxer_state == MEDIAMUXER_STATE_MUXING) {
+		ret = mx_pause(handle->mx_handle);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
 			MX_E
 			("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
