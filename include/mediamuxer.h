@@ -44,43 +44,43 @@ extern "C" {
  * @brief Media Muxer handle type
  * @since_tizen 3.0
  */
-typedef struct mediamuxer_s *mediamuxer_h;
+	typedef struct mediamuxer_s *mediamuxer_h;
 
 /**
  * @brief Enumeration for media muxer state
  * @since_tizen 3.0
  */
-typedef enum {
-	MEDIAMUXER_STATE_NONE,		/**< The mediamuxer is not created */
-	MEDIAMUXER_STATE_IDLE,		/**< The mediamuxer is created, but not prepared */
-	MEDIAMUXER_STATE_READY,		/**< The mediamuxer is ready to mux media */
-	MEDIAMUXER_STATE_MUXING,	/**< The mediamuxer is muxing media */
-	MEDIAMUXER_STATE_PAUSED		/**< The mediamuxer is paused while muxing media */
-} mediamuxer_state_e;
+	typedef enum {
+		MEDIAMUXER_STATE_NONE,	/**< The mediamuxer is not created */
+		MEDIAMUXER_STATE_IDLE,	/**< The mediamuxer is created, but not prepared */
+		MEDIAMUXER_STATE_READY,	/**< The mediamuxer is ready to mux media */
+		MEDIAMUXER_STATE_MUXING,/**< The mediamuxer is muxing media */
+		MEDIAMUXER_STATE_PAUSED	/**< The mediamuxer is paused while muxing media */
+	} mediamuxer_state_e;
 
 /**
  * @brief Enumeration for media muxer error
  * @since_tizen 3.0
  */
-typedef enum {
-	MEDIAMUXER_ERROR_NONE = TIZEN_ERROR_NONE,					/**< Successful */
-	MEDIAMUXER_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY,
-	MEDIAMUXER_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER,		/**< Invalid parameter */
-	MEDIAMUXER_ERROR_INVALID_OPERATION = TIZEN_ERROR_INVALID_OPERATION,		/**< Invalid operation */
-	MEDIAMUXER_ERROR_NOT_SUPPORTED  = TIZEN_ERROR_NOT_SUPPORTED,                     /**< Not supported */
-	MEDIAMUXER_ERROR_PERMISSION_DENIED  = TIZEN_ERROR_PERMISSION_DENIED,		/**< Permission denied */
-	MEDIAMUXER_ERROR_INVALID_STATE = TIZEN_ERROR_MEDIA_MUXER | 0x01,		/**< Invalid state */
-	MEDIAMUXER_ERROR_INVALID_PATH = TIZEN_ERROR_MEDIA_MUXER | 0x02,			/**< Invalid path */
-	MEDIAMUXER_ERROR_RESOURCE_LIMIT = TIZEN_ERROR_MEDIA_MUXER | 0x03		/**< Resource limit */
-} mediamuxer_error_e;
+	typedef enum {
+		MEDIAMUXER_ERROR_NONE = TIZEN_ERROR_NONE,				/**< Successful */
+		MEDIAMUXER_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY,
+		MEDIAMUXER_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER,	/**< Invalid parameter */
+		MEDIAMUXER_ERROR_INVALID_OPERATION = TIZEN_ERROR_INVALID_OPERATION,	/**< Invalid operation */
+		MEDIAMUXER_ERROR_NOT_SUPPORTED = TIZEN_ERROR_NOT_SUPPORTED,					 /**< Not supported */
+		MEDIAMUXER_ERROR_PERMISSION_DENIED = TIZEN_ERROR_PERMISSION_DENIED,		/**< Permission denied */
+		MEDIAMUXER_ERROR_INVALID_STATE = TIZEN_ERROR_MEDIA_MUXER | 0x01,	/**< Invalid state */
+		MEDIAMUXER_ERROR_INVALID_PATH = TIZEN_ERROR_MEDIA_MUXER | 0x02,		/**< Invalid path */
+		MEDIAMUXER_ERROR_RESOURCE_LIMIT = TIZEN_ERROR_MEDIA_MUXER | 0x03	/**< Resource limit */
+	} mediamuxer_error_e;
 
 /**
  * @brief Enumeration for media muxer output format
  * @since_tizen 3.0
  */
-typedef enum {
-	MEDIAMUXER_CONTAINER_FORMAT_MP4 = MEDIA_FORMAT_CONTAINER_MP4,       /**< The mediamuxer output format is MP4 container */
-} mediamuxer_output_format_e;
+	typedef enum {
+		MEDIAMUXER_CONTAINER_FORMAT_MP4 = MEDIA_FORMAT_CONTAINER_MP4,	/**< The mediamuxer output format is MP4 container */
+	} mediamuxer_output_format_e;
 
 /**
  * @brief Called when error occurs in media muxer.
@@ -98,7 +98,7 @@ typedef enum {
  * @see mediamuxer_set_error_cb()
  * @see mediamuxer_unset_error_cb()
  */
-typedef void (*mediamuxer_error_cb)(mediamuxer_error_e error, void *user_data);
+	typedef void (*mediamuxer_error_cb) (mediamuxer_error_e error, void *user_data);
 
 /**
  * @brief Creates a media muxer handle for muxing.
@@ -110,7 +110,7 @@ typedef void (*mediamuxer_error_cb)(mediamuxer_error_e error, void *user_data);
  * @post The media muxer state will be #MEDIAMUXER_STATE_IDLE.
  * @see mediamuxer_destroy()
  */
-int mediamuxer_create(mediamuxer_h *muxer);
+	int mediamuxer_create(mediamuxer_h * muxer);
 
 /**
  * @brief Sets the sink path of output stream.
@@ -130,7 +130,7 @@ int mediamuxer_create(mediamuxer_h *muxer);
  * @pre The media muxer state will be #MEDIAMUXER_STATE_IDLE by calling mediamuxer_create
  * @see #mediamuxer_output_format_e
  */
-int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_format_e format);
+	int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_format_e format);
 
 /**
  * @brief Adds the media track of interest to the muxer handle.
@@ -147,7 +147,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
  * @see mediamuxer_create()
  * @see mediamuxer_prepare()
  * */
-int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *track_index);
+	int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *track_index);
 
 /**
  * @brief Prepares the media muxer.
@@ -163,7 +163,7 @@ int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *t
  * @see mediamuxer_create()
  * @see mediamuxer_unprepare()
  * */
-int mediamuxer_prepare(mediamuxer_h muxer);
+	int mediamuxer_prepare(mediamuxer_h muxer);
 
 /**
  * @brief Starts the media muxer.
@@ -179,7 +179,7 @@ int mediamuxer_prepare(mediamuxer_h muxer);
  * @see mediamuxer_prepare()
  * @see mediamuxer_stop()
  * */
-int mediamuxer_start(mediamuxer_h muxer);
+	int mediamuxer_start(mediamuxer_h muxer);
 
 /**
  * @brief Writes the media packet of interest to the muxer handle.
@@ -199,7 +199,7 @@ int mediamuxer_start(mediamuxer_h muxer);
  * @see mediamuxer_pause()
  * @see #media_packet_h
  * */
-int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h inbuf);
+	int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h inbuf);
 
 /**
  * @brief Closes the track from further writing of data.
@@ -216,7 +216,7 @@ int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h 
  * @see mediamuxer_unprepare()
  * @see #mediamuxer_error_e
  * */
-int mediamuxer_close_track(mediamuxer_h muxer, int track_index);
+	int mediamuxer_close_track(mediamuxer_h muxer, int track_index);
 
 /**
  * @brief Pauses the media muxer.
@@ -233,7 +233,7 @@ int mediamuxer_close_track(mediamuxer_h muxer, int track_index);
  * @see mediamuxer_write_sample()
  * @see mediamuxer_resume()
  * */
-int mediamuxer_pause(mediamuxer_h muxer);
+	int mediamuxer_pause(mediamuxer_h muxer);
 
 /**
  * @brief Resumes the media muxer.
@@ -249,7 +249,7 @@ int mediamuxer_pause(mediamuxer_h muxer);
  * @post The media muxer state will be #MEDIAMUXER_STATE_MUXING.
  * @see mediamuxer_pause()
  * */
-int mediamuxer_resume(mediamuxer_h muxer);
+	int mediamuxer_resume(mediamuxer_h muxer);
 
 /**
  * @brief Stops the media muxer.
@@ -261,12 +261,12 @@ int mediamuxer_resume(mediamuxer_h muxer);
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING
- * 	or #MEDIAMUXER_STATE_PAUSED.
+ *	or #MEDIAMUXER_STATE_PAUSED.
  * @post The media muxer state will be #MEDIAMUXER_STATE_READY.
  * @see mediamuxer_start()
  * @see mediamuxer_unprepare()
  * */
-int mediamuxer_stop(mediamuxer_h muxer);
+	int mediamuxer_stop(mediamuxer_h muxer);
 
 /**
  * @brief Unprepares the media muxer.
@@ -284,7 +284,7 @@ int mediamuxer_stop(mediamuxer_h muxer);
  * @see mediamuxer_pause()
  * @see mediamuxer_destroy()
  * */
-int mediamuxer_unprepare(mediamuxer_h muxer);
+	int mediamuxer_unprepare(mediamuxer_h muxer);
 
 /**
  * @brief Removes the instance of media muxer and clear all its context memory.
@@ -298,7 +298,7 @@ int mediamuxer_unprepare(mediamuxer_h muxer);
  * @post The media muxer state will be #MEDIAMUXER_STATE_NONE.
  * @see mediamuxer_create()
  * */
-int mediamuxer_destroy(mediamuxer_h muxer);
+	int mediamuxer_destroy(mediamuxer_h muxer);
 
 /**
  * @brief Gets media muxer state.
@@ -312,7 +312,7 @@ int mediamuxer_destroy(mediamuxer_h muxer);
  * @pre Create a media muxer handle by calling mediamuxer_create() function.
  * @see #mediamuxer_state_e
  * */
-int mediamuxer_get_state(mediamuxer_h muxer, mediamuxer_state_e *state);
+	int mediamuxer_get_state(mediamuxer_h muxer, mediamuxer_state_e * state);
 
 /**
  * @brief Registers a error callback function to be invoked when an error occurs.
@@ -335,7 +335,7 @@ int mediamuxer_get_state(mediamuxer_h muxer, mediamuxer_state_e *state);
  * @see mediamuxer_unset_error_cb()
  * @see mediamuxer_error_cb()
  * */
-int mediamuxer_set_error_cb(mediamuxer_h muxer, mediamuxer_error_cb callback, void* user_data);
+	int mediamuxer_set_error_cb(mediamuxer_h muxer, mediamuxer_error_cb callback, void *user_data);
 
 /**
  * @brief Unregisters the error callback function.
@@ -346,7 +346,7 @@ int mediamuxer_set_error_cb(mediamuxer_h muxer, mediamuxer_error_cb callback, vo
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
  * @see mediamuxer_error_cb()
  * */
-int mediamuxer_unset_error_cb(mediamuxer_h muxer);
+	int mediamuxer_unset_error_cb(mediamuxer_h muxer);
 
 /**
  * @}
@@ -355,4 +355,4 @@ int mediamuxer_unset_error_cb(mediamuxer_h muxer);
 #ifdef __cplusplus
 }
 #endif
-#endif /* __TIZEN_MEDIAMUXER_H__ */
+#endif	/* __TIZEN_MEDIAMUXER_H__ */

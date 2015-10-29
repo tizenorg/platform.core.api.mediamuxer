@@ -20,9 +20,8 @@
 #include <mediamuxer_port.h>
 #include <mediamuxer_port_custom.h>
 
-static int custom_muxer_init(MMHandleType *pHandle);
-static int custom_muxer_set_data_sink(MMHandleType pHandle, char *uri,
-			mediamuxer_output_format_e format);
+static int custom_muxer_init(MMHandleType * pHandle);
+static int custom_muxer_set_data_sink(MMHandleType pHandle, char *uri, mediamuxer_output_format_e format);
 
 /*Media Muxer API common*/
 static media_port_muxer_ops def_mux_ops = {
@@ -31,7 +30,7 @@ static media_port_muxer_ops def_mux_ops = {
 	.set_data_sink = custom_muxer_set_data_sink,
 };
 
-int custom_port_register(media_port_muxer_ops *pOps)
+int custom_port_register(media_port_muxer_ops * pOps)
 {
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_FENTER();
@@ -39,18 +38,16 @@ int custom_port_register(media_port_muxer_ops *pOps)
 
 	def_mux_ops.n_size = sizeof(def_mux_ops);
 
-	memcpy((char *)pOps + sizeof(pOps->n_size),
-	       (char *)&def_mux_ops + sizeof(def_mux_ops.n_size),
-	       pOps->n_size - sizeof(pOps->n_size));
+	memcpy((char *)pOps + sizeof(pOps->n_size), (char *)&def_mux_ops + sizeof(def_mux_ops.n_size), pOps->n_size - sizeof(pOps->n_size));
 
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
+ ERROR:
 	ret = MX_ERROR_INVALID_ARGUMENT;
 	return ret;
 }
 
-static int custom_muxer_init(MMHandleType *pHandle)
+static int custom_muxer_init(MMHandleType * pHandle)
 {
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_FENTER();
@@ -59,8 +56,7 @@ static int custom_muxer_init(MMHandleType *pHandle)
 	return ret;
 }
 
-static int custom_muxer_set_data_sink(MMHandleType pHandle, char *uri,
-    mediamuxer_output_format_e format)
+static int custom_muxer_set_data_sink(MMHandleType pHandle, char *uri, mediamuxer_output_format_e format)
 {
 	MEDIAMUXER_FENTER();
 	MX_E("%s:exit: Not implemented\n", __func__);

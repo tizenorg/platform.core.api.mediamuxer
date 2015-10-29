@@ -97,28 +97,29 @@ extern "C" {
 /**< CUSTOM Port instance is not initialized */
 #define MX_ERROR_CUSTOM_PORT_NOT_INITIALIZED  MX_ERROR_CUSTOM_PORT_CLASS | 0x01)
 
-typedef enum {
-	MX_ERROR_NONE = 0,
-	MX_ERROR = -1,			/**< muxer happens error */
-	MX_MEMORY_ERROR = -2,		/**< muxer memory is not enough */
-	MX_PARAM_ERROR = -3,		/**< muxer parameter is error */
-	MX_INVALID_ARG = -4,		/**< muxer has invalid arguments */
-	MX_PERMISSION_DENIED = -5,
-	MX_INVALID_STATUS = -6,		/**< muxer works at invalid status */
-	MX_NOT_SUPPORTED = -7,		/**< muxer can't support this specific video format */
-	MX_INVALID_IN_BUF = -8,
-	MX_INVALID_OUT_BUF = -9,
-	MX_INTERNAL_ERROR = -10,
-	MX_HW_ERROR = -11,		/**< muxer happens hardware error */
-	MX_NOT_INITIALIZED = -12,
-	MX_INVALID_STREAM = -13,
-	MX_OUTPUT_BUFFER_EMPTY = -14,
-	MX_OUTPUT_BUFFER_OVERFLOW = -15,/**< muxer output buffer is overflow */
-	MX_MEMORY_ALLOCED = -16,	/**< muxer has got memory and can decode one frame */
-	MX_COURRPTED_INI = -17,		/**< value in the ini file is not valid */
-} mx_ret_e;
+	typedef enum {
+		MX_ERROR_NONE = 0,
+		MX_ERROR = -1,		/**< muxer happens error */
+		MX_MEMORY_ERROR = -2,	/**< muxer memory is not enough */
+		MX_PARAM_ERROR = -3,	/**< muxer parameter is error */
+		MX_INVALID_ARG = -4,	/**< muxer has invalid arguments */
+		MX_PERMISSION_DENIED = -5,
+		MX_INVALID_STATUS = -6,	/**< muxer works at invalid status */
+		MX_NOT_SUPPORTED = -7,	/**< muxer can't support this specific video format */
+		MX_INVALID_IN_BUF = -8,
+		MX_INVALID_OUT_BUF = -9,
+		MX_INTERNAL_ERROR = -10,
+		MX_HW_ERROR = -11,	/**< muxer happens hardware error */
+		MX_NOT_INITIALIZED = -12,
+		MX_INVALID_STREAM = -13,
+		MX_OUTPUT_BUFFER_EMPTY = -14,
+		MX_OUTPUT_BUFFER_OVERFLOW = -15,
+									/**< muxer output buffer is overflow */
+		MX_MEMORY_ALLOCED = -16,/**< muxer has got memory and can decode one frame */
+		MX_COURRPTED_INI = -17,	/**< value in the ini file is not valid */
+	} mx_ret_e;
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* __TIZEN_MEDIAMUXER_ERROR_H__ */
+#endif							/* __TIZEN_MEDIAMUXER_ERROR_H__ */

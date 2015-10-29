@@ -47,11 +47,11 @@
  * mediamuxer_start()
  * while()
  *	if (is_track(1)_data_available)
- * 		mediamuxer_write_sample(track(1)),
+ *		mediamuxer_write_sample(track(1)),
  *	else
- * 		mediamuxer_close_track(1)
+ *		mediamuxer_close_track(1)
  *	if (is_track(2)_data_available)
- * 		mediamuxer_write_sample(track(2))
+ *		mediamuxer_write_sample(track(2))
  *	else
  *		mediamuxer_close_track(2)
  * mediamuxer_stop()
@@ -59,4 +59,4 @@
  * mediamuxer_destroy()
  */
 
-#endif  /* __TIZEN_MEDIAMUXER_DOC_H__ */
+#endif							/* __TIZEN_MEDIAMUXER_DOC_H__ */
