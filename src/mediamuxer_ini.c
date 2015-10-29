@@ -28,72 +28,58 @@
 #include <mediamuxer_error.h>
 
 /* macro */
-#define MEDIAMUXER_INI_GET_STRING( x_dict, x_item, x_ini, x_default ) \
-	do \
-	{ \
+#define MEDIAMUXER_INI_GET_STRING(x_dict, x_item, x_ini, x_default) \
+	do { \
 		gchar* str = iniparser_getstring(x_dict, x_ini, x_default); \
 		\
-		if ( str &&  \
-		     ( strlen( str ) > 0 ) && \
-		     ( strlen( str ) < MEDIAMUXER_INI_MAX_STRLEN ) ) \
-		{ \
-			strcpy ( x_item, str ); \
+		if (str &&  \
+			(strlen(str) > 0) && \
+			(strlen(str) < MEDIAMUXER_INI_MAX_STRLEN)) { \
+			strcpy(x_item, str); \
+		} else { \
+			strcpy(x_item, x_default); \
 		} \
-		else \
-		{ \
-			strcpy ( x_item, x_default ); \
-		} \
-	}while(0)
+	} while (0)
 
-#define MEDIAMUXER_INI_GET_COLOR( x_dict, x_item, x_ini, x_default ) \
-	do \
-	{ \
+#define MEDIAMUXER_INI_GET_COLOR(x_dict, x_item, x_ini, x_default) \
+	do { \
 		gchar* str = iniparser_getstring(x_dict, x_ini, x_default); \
 		\
-		if ( str &&  \
-		     ( strlen( str ) > 0 ) && \
-		     ( strlen( str ) < MEDIAMUXER_INI_MAX_STRLEN ) ) \
-		{ \
+		if (str &&  \
+			(strlen(str) > 0) && \
+			(strlen(str) < MEDIAMUXER_INI_MAX_STRLEN)) { \
 			x_item = (guint) strtoul(str, NULL, 16); \
-		} \
-		else \
-		{ \
+		} else { \
 			x_item = (guint) strtoul(x_default, NULL, 16); \
 		} \
-	}while(0)
+	} while (0)
 
 /* x_ini is the list of index to set TRUE at x_list[index] */
-#define MEDIAMUXER_INI_GET_BOOLEAN_FROM_LIST( x_dict, x_list, \
-                                              x_list_max, x_ini, x_default ) \
-do \
-{ \
+#define MEDIAMUXER_INI_GET_BOOLEAN_FROM_LIST(x_dict, x_list, \
+					x_list_max, x_ini, x_default) \
+do { \
 	int index = 0; \
 	const char *delimiters = " ,"; \
 	char *usr_ptr = NULL; \
 	char *token = NULL; \
 	gchar temp_arr[MEDIAMUXER_INI_MAX_STRLEN] = {0}; \
-	MMMEDIAMUXER_INI_GET_STRING( x_dict, temp_arr, x_ini, x_default); \
-	token = strtok_r( temp_arr, delimiters, &usr_ptr ); \
-	while (token) \
-	{ \
+	MMMEDIAMUXER_INI_GET_STRING(x_dict, temp_arr, x_ini, x_default); \
+	token = strtok_r(temp_arr, delimiters, &usr_ptr); \
+	while (token) { \
 		index = atoi(token); \
-		if (index < 0 || index > x_list_max -1) \
-		{ \
+		if (index < 0 || index > x_list_max -1) { \
 			MX_W("%d is not valid index\n", index); \
-		} \
-		else \
-		{ \
+		} else { \
 			x_list[index] = TRUE; \
 		} \
-		token = strtok_r( NULL, delimiters, &usr_ptr ); \
+		token = strtok_r(NULL, delimiters, &usr_ptr); \
 	} \
-}while(0)
+} while (0)
 
 /* x_ini is the list of value to be set at x_list[index] */
-#define MEDIAMUXER_INI_GET_INT_FROM_LIST( x_dict, x_list, \
-                                          x_list_max, x_ini, x_default ) \
-do \
-{ \
+#define MEDIAMUXER_INI_GET_INT_FROM_LIST(x_dict, x_list, \
+					x_list_max, x_ini, x_default) \
+do { \
 	int index = 0; \
 	int value = 0; \
 	const char *delimiters = " ,"; \
@@ -101,23 +87,19 @@ do \
 	char *token = NULL; \
 	gchar temp_arr[MEDIAMUXER_INI_MAX_STRLEN] = {0}; \
 	MMMEDIAMUXER_INI_GET_STRING(x_dict, temp_arr, x_ini, x_default); \
-	token = strtok_r( temp_arr, delimiters, &usr_ptr ); \
-	while (token) \
-	{ \
-		if ( index > x_list_max -1) \
-		{ \
+	token = strtok_r(temp_arr, delimiters, &usr_ptr); \
+	while (token) { \
+		if (index > x_list_max -1) { \
 			MX_E("%d is not valid index\n", index); \
 			break; \
-		} \
-		else \
-		{ \
+		} else { \
 			value = atoi(token); \
 			x_list[index] = value; \
 			index++; \
 		} \
-		token = strtok_r( NULL, delimiters, &usr_ptr ); \
+		token = strtok_r(NULL, delimiters, &usr_ptr); \
 	} \
-}while(0)
+} while (0)
 
 /* internal functions, macros here */
 #ifdef MEDIAMUXER_DEFAULT_INI
@@ -158,14 +140,13 @@ int mx_ini_load(mx_ini_t *ini)
 	if (dict) {		/* if dict is available */
 		/* general */
 		MEDIAMUXER_INI_GET_STRING(dict, ini->port_name,
-		                          "port_in_use:mediamuxer_port",
-		                          DEFAULT_PORT);
+			"port_in_use:mediamuxer_port", DEFAULT_PORT);
 	} else {
 		/* if dict is not available just fill
 		   the structure with default value */
 		MX_W("failed to load ini. using hardcoded default\n");
 		strncpy(ini->port_name, DEFAULT_PORT,
-		        MEDIAMUXER_INI_MAX_STRLEN - 1);
+					MEDIAMUXER_INI_MAX_STRLEN - 1);
 	}
 
 	if (0 == strcmp(ini->port_name, "GST_PORT")) {

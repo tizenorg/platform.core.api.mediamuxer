@@ -112,7 +112,7 @@ int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *t
 	MUXER_INSTANCE_CHECK(muxer);
 	mediamuxer_s *handle;
 	handle = (mediamuxer_s *)(muxer);
-	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE){
+	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {
 		ret = mx_add_track(handle->mx_handle, media_format, track_index);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
 			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
@@ -188,9 +188,8 @@ int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h 
 	int ret = MEDIAMUXER_ERROR_NONE;
 	MUXER_INSTANCE_CHECK(muxer);
 	mediamuxer_s *handle = (mediamuxer_s *)(muxer);
-	if (track_index < 0 || inbuf == NULL) {
+	if (track_index < 0 || inbuf == NULL)
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
-	}
 	if (handle->muxer_state == MEDIAMUXER_STATE_READY
 		|| handle->muxer_state == MEDIAMUXER_STATE_MUXING) {
 		ret = mx_write_sample(handle->mx_handle, track_index, inbuf);
@@ -219,9 +218,8 @@ int mediamuxer_close_track(mediamuxer_h muxer, int track_index)
 	int ret = MEDIAMUXER_ERROR_NONE;
 	MUXER_INSTANCE_CHECK(muxer);
 	mediamuxer_s *handle = (mediamuxer_s *)(muxer);
-	if (track_index < 0) {
+	if (track_index < 0)
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
-	}
 	if (handle->muxer_state == MEDIAMUXER_STATE_MUXING ||
 		handle->muxer_state == MEDIAMUXER_STATE_IDLE ||
 		handle->muxer_state == MEDIAMUXER_STATE_READY) {
@@ -424,16 +422,15 @@ int mediamuxer_unset_error_cb(mediamuxer_h muxer)
 static gboolean _mediamuxer_error_cb(mediamuxer_error_e error, void *user_data)
 {
 	if (user_data == NULL) {
-		MX_I("_mediamuxer_error_cb: ERROR %d to report. But call back is not set\n",error);
+		MX_I("_mediamuxer_error_cb: ERROR %d to report. But call back is not set\n", error);
 		return 0;
 	}
 	mediamuxer_s * handle = (mediamuxer_s *) user_data;
 
-	if (handle->error_cb ) {
+	if (handle->error_cb)
 		((mediamuxer_error_cb)handle->error_cb)(error, handle->error_cb_userdata);
-	}
-	else {
-		MX_I("_mediamuxer_error_cb: ERROR %d to report. But call back is not set\n",error);
-	}
+	else
+		MX_I("_mediamuxer_error_cb: ERROR %d to report. But call back is not set\n", error);
+
 	return 0;
 }

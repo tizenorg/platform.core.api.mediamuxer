@@ -24,7 +24,7 @@ static int ffmpeg_muxer_init(MMHandleType *pHandle);
 static int ffmpeg_muxer_set_data_sink(MMHandleType pHandle, char *uri,
 			mediamuxer_output_format_e format);
 
-/*Media Muxer API common*/
+/* Media Muxer API common */
 static media_port_muxer_ops def_mux_ops = {
 	.n_size = 0,
 	.init = ffmpeg_muxer_init,
@@ -60,7 +60,7 @@ static int ffmpeg_muxer_init(MMHandleType *pHandle)
 }
 
 static int ffmpeg_muxer_set_data_sink(MMHandleType pHandle, char *uri,
-    mediamuxer_output_format_e format)
+			mediamuxer_output_format_e format)
 {
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_FENTER();

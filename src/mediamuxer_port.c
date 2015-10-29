@@ -61,12 +61,12 @@ int mx_create(MMHandleType *muxer)
 	/* load ini files */
 	result = mx_ini_load(&new_muxer->ini);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(result, MX_ERROR_NONE, result,
-	                               MX_COURRPTED_INI, "can't load ini");
+					MX_COURRPTED_INI, "can't load ini");
 
 	register_port_func[new_muxer->ini.port_type](pOps);
 	result = pOps->init(&new_muxer->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(result, MX_ERROR_NONE, result,
-	                               MX_NOT_INITIALIZED, "mx_create failed");
+					MX_NOT_INITIALIZED, "mx_create failed");
 	*muxer = (MMHandleType) new_muxer;
 	MEDIAMUXER_FLEAVE();
 	return result;
@@ -107,7 +107,7 @@ int mx_add_track(MMHandleType mediamuxer, media_format_h media_format, int *trac
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->add_track(mx_handle->mxport_handle, media_format, track_index);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while adding track");
+					"error while adding track");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -125,7 +125,7 @@ int mx_prepare(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->prepare(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while preparing");
+					"error while preparing");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -143,7 +143,7 @@ int mx_start(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->start(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while starting");
+					"error while starting");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -161,7 +161,7 @@ int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inb
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->write_sample(mx_handle->mxport_handle, track_index, inbuf);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while writing sample");
+					"error while writing sample");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -179,7 +179,7 @@ int mx_close_track(MMHandleType mediamuxer, int track_index)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->close_track(mx_handle->mxport_handle, track_index);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while closing track");
+					"error while closing track");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -197,7 +197,7 @@ int mx_pause(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->pause(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while pausing");
+					"error while pausing");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -215,7 +215,7 @@ int mx_resume(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->resume(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while resuming");
+					"error while resuming");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -233,7 +233,7 @@ int mx_stop(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->stop(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while stopping");
+					"error while stopping");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -251,7 +251,7 @@ int mx_unprepare(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->unprepare(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while destroying");
+					"error while destroying");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -269,7 +269,7 @@ int mx_destroy(MMHandleType mediamuxer)
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->destroy(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
-	                               "error while destroying");
+					"error while destroying");
 
 	/* free mediamuxer structure */
 	if (mx_handle) {
@@ -296,7 +296,7 @@ int mx_set_error_cb(MMHandleType muxer,
 	MEDIAMUXER_CHECK_NULL(mx_handle);
 	media_port_muxer_ops *pOps = mx_handle->muxer_ops;
 	MEDIAMUXER_CHECK_NULL(pOps);
-	result = pOps->set_error_cb(mx_handle->mxport_handle, callback,user_data);
+	result = pOps->set_error_cb(mx_handle->mxport_handle, callback, user_data);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(result, MX_ERROR_NONE, result,
 			MX_ERROR, "error while setting error call back");
 	MEDIAMUXER_FLEAVE();

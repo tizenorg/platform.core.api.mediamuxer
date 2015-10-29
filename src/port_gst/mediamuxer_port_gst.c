@@ -22,8 +22,8 @@
 
 #define EOS_POLL_PERIOD 1000
 #define WRITE_POLL_PERIOD 100
-/*#define SEND_FULL_CAPS_VIA_CODEC_DATA *//*For debug purpose*/
-#define ASYCHRONOUS_WRITE  /*write sample is not blocking */
+/* #define SEND_FULL_CAPS_VIA_CODEC_DATA *//* For debug purpose */
+#define ASYCHRONOUS_WRITE  /* write sample is not blocking */
 
 static int gst_muxer_init(MMHandleType *pHandle);
 static int gst_muxer_set_data_sink(MMHandleType pHandle, char *uri,
@@ -43,7 +43,7 @@ static int gst_muxer_destroy(MMHandleType pHandle);
 static int gst_set_error_cb(MMHandleType pHandle,
 			gst_error_cb callback, void* user_data);
 
-/*Media Muxer API common*/
+/* Media Muxer API common */
 static media_port_muxer_ops def_mux_ops = {
 	.n_size = 0,
 	.init = gst_muxer_init,
@@ -115,7 +115,7 @@ ERROR:
 }
 
 static int gst_muxer_set_data_sink(MMHandleType pHandle,
-                  char *uri, mediamuxer_output_format_e format)
+		char *uri, mediamuxer_output_format_e format)
 {
 	MEDIAMUXER_FENTER();
 	int ret = MX_ERROR_NONE;
@@ -134,7 +134,7 @@ ERROR:
 }
 
 static int gst_muxer_add_track(MMHandleType pHandle,
-                  media_format_h media_format, int *track_index)
+			media_format_h media_format, int *track_index)
 {
 	MEDIAMUXER_FENTER();
 	int ret = MX_ERROR_NONE;
@@ -159,7 +159,7 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		MX_I("Adding first-ever track\n");
 		mx_handle_gst->track_info.track_head = current;
 	} else {
-		MX_I("Adding %d-track)\n",1+mx_handle_gst->track_info.total_track_cnt);
+		MX_I("Adding %d-track)\n", 1+mx_handle_gst->track_info.total_track_cnt);
 		last = mx_handle_gst->track_info.track_head;
 		while (last->next != NULL)
 			last = last->next;
@@ -168,10 +168,10 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 	}
 
 	if (media_format_get_video_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
-                                                                    MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
-		if (mimetype == MEDIA_FORMAT_H264_SP  ||
-		    mimetype == MEDIA_FORMAT_H264_MP ||
-		    mimetype == MEDIA_FORMAT_H264_HP) {
+		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+		if (mimetype == MEDIA_FORMAT_H264_SP
+			|| mimetype == MEDIA_FORMAT_H264_MP
+			|| mimetype == MEDIA_FORMAT_H264_HP) {
 
 			current->track_index = NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.video_track_cnt);
 			(mx_handle_gst->track_info.video_track_cnt)++;
@@ -184,7 +184,7 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 			MX_E("Unsupported MIME Type\n");
 		}
 	} else if (media_format_get_audio_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
-	                                                                MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
 		if (mimetype == MEDIA_FORMAT_AAC ||
 		    mimetype == MEDIA_FORMAT_AAC_LC ||
 		    mimetype == MEDIA_FORMAT_AAC_HE ||
@@ -219,23 +219,23 @@ static gint __gst_handle_resource_error(mxgst_handle_t* gst_handle, int code)
 	g_return_val_if_fail(gst_handle, MX_PARAM_ERROR);
 
 	switch (code) {
-		/* ToDo: Add individual actions as and when needed */
-		case GST_RESOURCE_ERROR_NO_SPACE_LEFT:
-			trans_err = MX_ERROR_COMMON_NO_FREE_SPACE;
-			break;
-		case GST_RESOURCE_ERROR_WRITE:
-		case GST_RESOURCE_ERROR_FAILED:
-		case GST_RESOURCE_ERROR_SEEK:
-		case GST_RESOURCE_ERROR_TOO_LAZY:
-		case GST_RESOURCE_ERROR_BUSY:
-		case GST_RESOURCE_ERROR_OPEN_WRITE:
-		case GST_RESOURCE_ERROR_OPEN_READ_WRITE:
-		case GST_RESOURCE_ERROR_CLOSE:
-		case GST_RESOURCE_ERROR_SYNC:
-		case GST_RESOURCE_ERROR_SETTINGS:
-		default:
-			trans_err = MX_INTERNAL_ERROR;
-			break;
+	/* ToDo: Add individual actions as and when needed */
+	case GST_RESOURCE_ERROR_NO_SPACE_LEFT:
+		trans_err = MX_ERROR_COMMON_NO_FREE_SPACE;
+		break;
+	case GST_RESOURCE_ERROR_WRITE:
+	case GST_RESOURCE_ERROR_FAILED:
+	case GST_RESOURCE_ERROR_SEEK:
+	case GST_RESOURCE_ERROR_TOO_LAZY:
+	case GST_RESOURCE_ERROR_BUSY:
+	case GST_RESOURCE_ERROR_OPEN_WRITE:
+	case GST_RESOURCE_ERROR_OPEN_READ_WRITE:
+	case GST_RESOURCE_ERROR_CLOSE:
+	case GST_RESOURCE_ERROR_SYNC:
+	case GST_RESOURCE_ERROR_SETTINGS:
+	default:
+		trans_err = MX_INTERNAL_ERROR;
+		break;
 	}
 	MEDIAMUXER_FLEAVE();
 	return trans_err;
@@ -248,24 +248,24 @@ static gint __gst_handle_core_error(mxgst_handle_t* gst_handle, int code)
 
 	/* g_return_val_if_fail(core, MX_PARAM_ERROR); */
 	switch (code) {
-		/* ToDo: Add individual actions as and when needed */
-		case GST_CORE_ERROR_MISSING_PLUGIN:
-		case GST_CORE_ERROR_STATE_CHANGE:
-		case GST_CORE_ERROR_SEEK:
-		case GST_CORE_ERROR_NOT_IMPLEMENTED:
-		case GST_CORE_ERROR_FAILED:
-		case GST_CORE_ERROR_TOO_LAZY:
-		case GST_CORE_ERROR_PAD:
-		case GST_CORE_ERROR_THREAD:
-		case GST_CORE_ERROR_NEGOTIATION:
-		case GST_CORE_ERROR_EVENT:
-		case GST_CORE_ERROR_CAPS:
-		case GST_CORE_ERROR_TAG:
-		case GST_CORE_ERROR_CLOCK:
-		case GST_CORE_ERROR_DISABLED:
-		default:
-			trans_err =  MX_INTERNAL_ERROR;
-			break;
+	/* ToDo: Add individual actions as and when needed */
+	case GST_CORE_ERROR_MISSING_PLUGIN:
+	case GST_CORE_ERROR_STATE_CHANGE:
+	case GST_CORE_ERROR_SEEK:
+	case GST_CORE_ERROR_NOT_IMPLEMENTED:
+	case GST_CORE_ERROR_FAILED:
+	case GST_CORE_ERROR_TOO_LAZY:
+	case GST_CORE_ERROR_PAD:
+	case GST_CORE_ERROR_THREAD:
+	case GST_CORE_ERROR_NEGOTIATION:
+	case GST_CORE_ERROR_EVENT:
+	case GST_CORE_ERROR_CAPS:
+	case GST_CORE_ERROR_TAG:
+	case GST_CORE_ERROR_CLOCK:
+	case GST_CORE_ERROR_DISABLED:
+	default:
+		trans_err =  MX_INTERNAL_ERROR;
+		break;
 	}
 	MEDIAMUXER_FLEAVE();
 	return trans_err;
@@ -278,16 +278,16 @@ static gint __gst_handle_library_error(mxgst_handle_t* gst_handle, int code)
 	g_return_val_if_fail(gst_handle, MX_PARAM_ERROR);
 
 	switch (code) {
-		/* ToDo: Add individual actions as and when needed */
-		case GST_LIBRARY_ERROR_FAILED:
-		case GST_LIBRARY_ERROR_TOO_LAZY:
-		case GST_LIBRARY_ERROR_INIT:
-		case GST_LIBRARY_ERROR_SHUTDOWN:
-		case GST_LIBRARY_ERROR_SETTINGS:
-		case GST_LIBRARY_ERROR_ENCODE:
-		default:
-			trans_err =  MX_INTERNAL_ERROR;
-			break;
+	/* ToDo: Add individual actions as and when needed */
+	case GST_LIBRARY_ERROR_FAILED:
+	case GST_LIBRARY_ERROR_TOO_LAZY:
+	case GST_LIBRARY_ERROR_INIT:
+	case GST_LIBRARY_ERROR_SHUTDOWN:
+	case GST_LIBRARY_ERROR_SETTINGS:
+	case GST_LIBRARY_ERROR_ENCODE:
+	default:
+		trans_err =  MX_INTERNAL_ERROR;
+		break;
 	}
 	MEDIAMUXER_FLEAVE();
 	return trans_err;
@@ -299,38 +299,38 @@ static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
 	int ret  = MX_ERROR_NONE;
 	mxgst_handle_t *gst_handle = (mxgst_handle_t*)data;
 	switch (GST_MESSAGE_TYPE(msg)) {
-		case GST_MESSAGE_EOS:
-			MX_I("End of stream\n");
-			break;
-		case GST_MESSAGE_ERROR: {
-				gchar *debug;
-				GError *error;
-				gst_message_parse_error(msg, &error, &debug);
-				if (!error) {
-					MX_E("GST error message parsing failed");
-					break;
-				}
-				MX_E("Error: %s\n", error->message);
-				if (error) {
-					if (error->domain == GST_RESOURCE_ERROR)
-						ret = __gst_handle_resource_error(gst_handle, error->code);
-					else if (error->domain == GST_LIBRARY_ERROR)
-						ret = __gst_handle_library_error(gst_handle, error->code);
-					else if (error->domain == GST_CORE_ERROR)
-						ret = __gst_handle_core_error(gst_handle, error->code);
-					else
-						MX_E("Unexpected error has occured");
-					/* ToDo: Update the user callback with ret... */
-					return ret;
-				}
-				g_free(debug);
-				MX_E("Error: %s\n", error->message);
-				g_error_free(error);
+	case GST_MESSAGE_EOS:
+		MX_I("End of stream\n");
+		break;
+	case GST_MESSAGE_ERROR: {
+			gchar *debug;
+			GError *error;
+			gst_message_parse_error(msg, &error, &debug);
+			if (!error) {
+				MX_E("GST error message parsing failed");
+				break;
 			}
-			break;
-		default:
-			MX_E("unhandled message: 0x%x", GST_MESSAGE_TYPE(msg));
-			break;
+			MX_E("Error: %s\n", error->message);
+			if (error) {
+				if (error->domain == GST_RESOURCE_ERROR)
+					ret = __gst_handle_resource_error(gst_handle, error->code);
+				else if (error->domain == GST_LIBRARY_ERROR)
+					ret = __gst_handle_library_error(gst_handle, error->code);
+				else if (error->domain == GST_CORE_ERROR)
+					ret = __gst_handle_core_error(gst_handle, error->code);
+				else
+					MX_E("Unexpected error has occured");
+				/* ToDo: Update the user callback with ret... */
+				return ret;
+			}
+			g_free(debug);
+			MX_E("Error: %s\n", error->message);
+			g_error_free(error);
+		}
+		break;
+	default:
+		MX_E("unhandled message: 0x%x", GST_MESSAGE_TYPE(msg));
+		break;
 	}
 	MEDIAMUXER_FLEAVE();
 	return TRUE;
@@ -343,7 +343,7 @@ static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
 static void _audio_start_feed(GstElement *source, guint size, mx_gst_track *current)
 {
 	if (current) {
-		MX_I("\nAudio Start feeding..., current->track_index = %d\n",current->track_index);
+		MX_I("\nAudio Start feeding..., current->track_index = %d\n", current->track_index);
 		current->stop_feed = 0;
 		current->start_feed = 1;
 	} else
@@ -353,7 +353,7 @@ static void _audio_start_feed(GstElement *source, guint size, mx_gst_track *curr
 static void _video_start_feed(GstElement *source, guint size, mx_gst_track *current)
 {
 	if (current) {
-		MX_I("\nVideo Start feeding cb... current->track_index = %d\n",current->track_index);
+		MX_I("\nVideo Start feeding cb... current->track_index = %d\n", current->track_index);
 		current->stop_feed = 0;
 		current->start_feed = 1;
 	} else
@@ -367,7 +367,7 @@ static void _video_start_feed(GstElement *source, guint size, mx_gst_track *curr
 static void _audio_stop_feed(GstElement *source, mx_gst_track *current)
 {
 	if (current) {
-		MX_I("\nAudio Stop feeding cb... current->track_index = %d\n",current->track_index);
+		MX_I("\nAudio Stop feeding cb... current->track_index = %d\n", current->track_index);
 		current->stop_feed = 1;
 		current->start_feed = 0;
 	} else
@@ -377,7 +377,7 @@ static void _audio_stop_feed(GstElement *source, mx_gst_track *current)
 static void _video_stop_feed(GstElement *source, mx_gst_track *current)
 {
 	if (current) {
-		MX_I("\nVideo Stop feeding... current->track_index = %d\n",current->track_index);
+		MX_I("\nVideo Stop feeding... current->track_index = %d\n", current->track_index);
 		current->stop_feed = 1;
 		current->start_feed = 0;
 	} else
@@ -428,8 +428,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
 				if (current->track_index%NO_OF_TRACK_TYPES == 0) { /* Video track */
 
-					sprintf(str_appsrc,"video_appsrc%d",current->track_index);
-					sprintf(str_parser,"video_parser%d",current->track_index);
+					sprintf(str_appsrc, "video_appsrc%d", current->track_index);
+					sprintf(str_parser, "video_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 					current->parser = gst_element_factory_make("h264parse", str_parser);
@@ -454,12 +454,12 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 #else
 					g_object_set(current->appsrc, "block", TRUE, NULL);
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
-		                        GST_APP_STREAM_TYPE_STREAM);
+						GST_APP_STREAM_TYPE_STREAM);
 #endif
 					gst_element_link(current->appsrc, current->parser);
 
 					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-					sprintf(track_no,"video_%.2d",vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
+					sprintf(track_no, "video_%.2d", vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
 
 					video_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
 					vid_src = gst_element_get_static_pad(current->parser, "src");
@@ -474,8 +474,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
 				if (current->track_index%NO_OF_TRACK_TYPES == 1) {
 
-					sprintf(str_appsrc,"audio_appsrc%d",current->track_index);
-					sprintf(str_parser,"audio_parser%d",current->track_index);
+					sprintf(str_appsrc, "audio_appsrc%d", current->track_index);
+					sprintf(str_parser, "audio_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 					current->parser = gst_element_factory_make("aacparse", str_parser);
@@ -492,7 +492,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent fucntions to each track */
-					MX_I("\nRegistering callback for cur->tr_ind = %d",current->track_index);
+					MX_I("\nRegistering callback for cur->tr_ind = %d", current->track_index);
 					g_signal_connect(current->appsrc, "need-data",
 						G_CALLBACK(_audio_start_feed), current);
 					g_signal_connect(current->appsrc, "enough-data",
@@ -500,12 +500,12 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 #else
 					g_object_set(current->appsrc, "block", TRUE, NULL);
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
-		                        GST_APP_STREAM_TYPE_STREAM);
+						GST_APP_STREAM_TYPE_STREAM);
 #endif
 
 					gst_element_link(current->appsrc, current->parser);
 					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-					sprintf(track_no,"audio_%.2d",aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
+					sprintf(track_no, "audio_%.2d", aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
 
 					audio_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
 					aud_src = gst_element_get_static_pad(current->parser, "src");
@@ -523,7 +523,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 	MX_I("Output_uri= %s\n", gst_handle->output_uri);
 	g_object_set(GST_OBJECT(gst_handle->sink), "location",
-	             gst_handle->output_uri, NULL);
+				gst_handle->output_uri, NULL);
 
 	/* connect signals, bus watcher */
 	bus = gst_pipeline_get_bus(GST_PIPELINE(gst_handle->pipeline));
@@ -532,7 +532,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 	/* set pipeline state to READY */
 	MEDIAMUXER_ELEMENT_SET_STATE(GST_ELEMENT_CAST(gst_handle->pipeline),
-	                             GST_STATE_READY);
+					GST_STATE_READY);
 	return MX_ERROR_NONE;
 
 STATE_CHANGE_FAILED:
@@ -541,7 +541,7 @@ ERROR:
 	if (gst_handle->pipeline)
 		gst_object_unref(GST_OBJECT(gst_handle->pipeline));
 
-	for (current = gst_handle->track_info.track_head; current; current=current->next) {
+	for (current = gst_handle->track_info.track_head; current; current = current->next) {
 		if (current->appsrc)
 			gst_object_unref(GST_OBJECT(current->appsrc));
 		if (current->parser)
@@ -586,7 +586,7 @@ static int gst_muxer_start(MMHandleType pHandle)
 
 	/* set pipeline state to PLAYING */
 	MEDIAMUXER_ELEMENT_SET_STATE(GST_ELEMENT_CAST(gst_handle->pipeline),
-	                             GST_STATE_PLAYING);
+				GST_STATE_PLAYING);
 
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -604,113 +604,113 @@ ERROR:
 }
 
 int __gst_codec_specific_caps(GstCaps *new_cap,
-                              media_format_mimetype_e mimetype)
+				media_format_mimetype_e mimetype)
 {
 	MEDIAMUXER_FENTER();
 	GValue val = G_VALUE_INIT;
 	switch (mimetype) {
-			/*video*/
-		case MEDIA_FORMAT_H261:
-			break;
-		case MEDIA_FORMAT_H263:
-			break;
-		case MEDIA_FORMAT_H263P:
-			break;
-		case MEDIA_FORMAT_H264_SP:
-			break;
-		case MEDIA_FORMAT_H264_MP:
-			break;
-		case MEDIA_FORMAT_H264_HP:
-			break;
-		case MEDIA_FORMAT_MJPEG:
-			break;
-		case MEDIA_FORMAT_MPEG1:
-			break;
-		case MEDIA_FORMAT_MPEG2_SP:
-			break;
-		case MEDIA_FORMAT_MPEG2_MP:
-			break;
-		case MEDIA_FORMAT_MPEG2_HP:
-			break;
-		case MEDIA_FORMAT_MPEG4_SP:
-			break;
-		case MEDIA_FORMAT_MPEG4_ASP:
-			break;
-		case MEDIA_FORMAT_HEVC:
-			break;
-		case MEDIA_FORMAT_VP8:
-			break;
-		case MEDIA_FORMAT_VP9:
-			break;
-		case MEDIA_FORMAT_VC1:
-			break;
-		case MEDIA_FORMAT_I420:
-			break;
-		case MEDIA_FORMAT_NV12:
-			break;
-		case MEDIA_FORMAT_NV12T:
-			break;
-		case MEDIA_FORMAT_YV12:
-			break;
-		case MEDIA_FORMAT_NV21:
-			break;
-		case MEDIA_FORMAT_NV16:
-			break;
-		case MEDIA_FORMAT_YUYV:
-			break;
-		case MEDIA_FORMAT_UYVY:
-			break;
-		case MEDIA_FORMAT_422P:
-			break;
-		case MEDIA_FORMAT_RGB565:
-			break;
-		case MEDIA_FORMAT_RGB888:
-			break;
-		case MEDIA_FORMAT_RGBA:
-			break;
-		case MEDIA_FORMAT_ARGB:
-			break;
-			/*audio*/
-		case MEDIA_FORMAT_L16:
-			break;
-		case MEDIA_FORMAT_ALAW:
-			break;
-		case MEDIA_FORMAT_ULAW:
-			break;
-		case MEDIA_FORMAT_AMR:
-			break;
-		case MEDIA_FORMAT_AMR_WB:
-			break;
-		case MEDIA_FORMAT_G729:
-			break;
-		case MEDIA_FORMAT_AAC:
-			g_value_init(&val, G_TYPE_INT);
-			g_value_set_int(&val, 4);
-			gst_caps_set_value(new_cap, "mpegversion", &val);
-			break;
-		case MEDIA_FORMAT_AAC_HE:
-			g_value_init(&val, G_TYPE_INT);
-			g_value_set_int(&val, 4);
-			gst_caps_set_value(new_cap, "mpegversion", &val);
-			break;
-		case MEDIA_FORMAT_AAC_HE_PS:
-			g_value_init(&val, G_TYPE_INT);
-			g_value_set_int(&val, 4);
-			gst_caps_set_value(new_cap, "mpegversion", &val);
-			break;
-		case MEDIA_FORMAT_MP3:
-			break;
-		case MEDIA_FORMAT_VORBIS:
-			break;
-		case MEDIA_FORMAT_PCM:
-			break;
-		case MEDIA_FORMAT_PCMA:
-			break;
-		case MEDIA_FORMAT_PCMU:
-			break;
-		default:
-			MX_E("Unknown media mimeype %d. Assuming H264\n", mimetype);
-			break;
+	/* video */
+	case MEDIA_FORMAT_H261:
+		break;
+	case MEDIA_FORMAT_H263:
+		break;
+	case MEDIA_FORMAT_H263P:
+		break;
+	case MEDIA_FORMAT_H264_SP:
+		break;
+	case MEDIA_FORMAT_H264_MP:
+		break;
+	case MEDIA_FORMAT_H264_HP:
+		break;
+	case MEDIA_FORMAT_MJPEG:
+		break;
+	case MEDIA_FORMAT_MPEG1:
+		break;
+	case MEDIA_FORMAT_MPEG2_SP:
+		break;
+	case MEDIA_FORMAT_MPEG2_MP:
+		break;
+	case MEDIA_FORMAT_MPEG2_HP:
+		break;
+	case MEDIA_FORMAT_MPEG4_SP:
+		break;
+	case MEDIA_FORMAT_MPEG4_ASP:
+		break;
+	case MEDIA_FORMAT_HEVC:
+		break;
+	case MEDIA_FORMAT_VP8:
+		break;
+	case MEDIA_FORMAT_VP9:
+		break;
+	case MEDIA_FORMAT_VC1:
+		break;
+	case MEDIA_FORMAT_I420:
+		break;
+	case MEDIA_FORMAT_NV12:
+		break;
+	case MEDIA_FORMAT_NV12T:
+		break;
+	case MEDIA_FORMAT_YV12:
+		break;
+	case MEDIA_FORMAT_NV21:
+		break;
+	case MEDIA_FORMAT_NV16:
+		break;
+	case MEDIA_FORMAT_YUYV:
+		break;
+	case MEDIA_FORMAT_UYVY:
+		break;
+	case MEDIA_FORMAT_422P:
+		break;
+	case MEDIA_FORMAT_RGB565:
+		break;
+	case MEDIA_FORMAT_RGB888:
+		break;
+	case MEDIA_FORMAT_RGBA:
+		break;
+	case MEDIA_FORMAT_ARGB:
+		break;
+		/* audio */
+	case MEDIA_FORMAT_L16:
+		break;
+	case MEDIA_FORMAT_ALAW:
+		break;
+	case MEDIA_FORMAT_ULAW:
+		break;
+	case MEDIA_FORMAT_AMR:
+		break;
+	case MEDIA_FORMAT_AMR_WB:
+		break;
+	case MEDIA_FORMAT_G729:
+		break;
+	case MEDIA_FORMAT_AAC:
+		g_value_init(&val, G_TYPE_INT);
+		g_value_set_int(&val, 4);
+		gst_caps_set_value(new_cap, "mpegversion", &val);
+		break;
+	case MEDIA_FORMAT_AAC_HE:
+		g_value_init(&val, G_TYPE_INT);
+		g_value_set_int(&val, 4);
+		gst_caps_set_value(new_cap, "mpegversion", &val);
+		break;
+	case MEDIA_FORMAT_AAC_HE_PS:
+		g_value_init(&val, G_TYPE_INT);
+		g_value_set_int(&val, 4);
+		gst_caps_set_value(new_cap, "mpegversion", &val);
+		break;
+	case MEDIA_FORMAT_MP3:
+		break;
+	case MEDIA_FORMAT_VORBIS:
+		break;
+	case MEDIA_FORMAT_PCM:
+		break;
+	case MEDIA_FORMAT_PCMA:
+		break;
+	case MEDIA_FORMAT_PCMU:
+		break;
+	default:
+		MX_E("Unknown media mimeype %d. Assuming H264\n", mimetype);
+		break;
 	}
 	MEDIAMUXER_FLEAVE();
 	return 0;
@@ -762,161 +762,160 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 	}
 
 	switch (formattype) {
-		case MEDIA_FORMAT_AUDIO:
-			/* Following check is safe but not mandatory. */
-			if ((current->track_index)%NO_OF_TRACK_TYPES != 1) {
-				MX_E("\n\nThis is not an audio track_index. Track_index is not in 3*n+1 format\n\n");
-				goto ERROR;
-			}
-			if (media_packet_get_extra(packet,
-			                                (void **)&codec_data)) {
-				MX_E("media_packet_get_extra call failed\n");
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			codec_data_size = strlen(codec_data) + 1;
-			MX_I("Extracted codec data is =%s size is %d\n", codec_data, codec_data_size);
+	case MEDIA_FORMAT_AUDIO:
+		/* Following check is safe but not mandatory. */
+		if ((current->track_index)%NO_OF_TRACK_TYPES != 1) {
+			MX_E("\n\nThis is not an audio track_index. Track_index is not in 3*n+1 format\n\n");
+			goto ERROR;
+		}
+		if (media_packet_get_extra(packet,
+				(void **)&codec_data)) {
+			MX_E("media_packet_get_extra call failed\n");
+			ret = MX_ERROR_UNKNOWN;
+			break;
+		}
+		codec_data_size = strlen(codec_data) + 1;
+		MX_I("Extracted codec data is =%s size is %d\n", codec_data, codec_data_size);
 
-			if (current->caps == NULL ||
-			    g_strcmp0(codec_data, current->caps) != 0) {
+		if (current->caps == NULL ||
+		    g_strcmp0(codec_data, current->caps) != 0) {
 
 #ifndef SEND_FULL_CAPS_VIA_CODEC_DATA
 
-				if (media_format_get_audio_info(format,
-				                                &mimetype, &channel, &samplerate,
-				                                &bit, &avg_bps)) {
-					MX_E("media_format_get_audio_info call failed\n");
+			if (media_format_get_audio_info(format,
+				&mimetype, &channel, &samplerate,
+				&bit, &avg_bps)) {
+				MX_E("media_format_get_audio_info call failed\n");
+				ret = MX_ERROR_UNKNOWN;
+				break;
+			}
+			if (current->caps == NULL) {
+				current->caps = (char *)g_malloc(codec_data_size);
+				if (current->caps == NULL) {
+					MX_E("[%s][%d]memory allocation failed\n", __func__, __LINE__);
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
+			}
+			new_cap = gst_caps_from_string(codec_data);
+			if (__gst_codec_specific_caps(new_cap, mimetype)) {
+				MX_E("Setting Audio caps failed\n");
+				gst_caps_unref(new_cap);
+				ret = MX_ERROR_UNKNOWN;
+				break;
+			}
+			caps_string = gst_caps_to_string(new_cap);
+			MX_I("New cap set by codec data is = %s\n",
+			     caps_string);
+			if (caps_string)
+				g_free(caps_string);
+			g_object_set(current->appsrc,
+				"caps", new_cap, NULL);
+			MX_I("copying   current->caps = codec_data\n");
+			g_stpcpy(current->caps, codec_data);
+#else
+			/* Debugging purpose. The whole caps filter can be sent via codec_data */
+			new_cap = gst_caps_from_string(codec_data);
+			MX_I("codec  cap is=%s\n", codec_data);
+			g_object_set(current->appsrc,
+				"caps", new_cap, NULL);
+			if (current->caps == NULL) {
+				current->caps = (char *)g_malloc(codec_data_size);
 				if (current->caps == NULL) {
-					current->caps = (char *)g_malloc(codec_data_size);
-					if (current->caps == NULL) {
-						MX_E("[%s][%d]memory allocation failed\n", __func__, __LINE__);
-						ret = MX_ERROR_UNKNOWN;
-						break;
-					}
-				}
-				new_cap = gst_caps_from_string(codec_data);
-				if (__gst_codec_specific_caps(new_cap, mimetype)) {
-					MX_E("Setting Audio caps failed\n");
+					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
 					gst_caps_unref(new_cap);
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
-				caps_string = gst_caps_to_string(new_cap);
-				MX_I("New cap set by codec data is = %s\n",
-				     caps_string);
-				if (caps_string)
-					g_free(caps_string);
-				g_object_set(current->appsrc,
-				             "caps", new_cap, NULL);
-				MX_I("copying   current->caps = codec_data\n");
-				g_stpcpy(current->caps, codec_data);
-#else
-				/*Debugging purpose. The whole caps filter can be sent via codec_data*/
-				new_cap = gst_caps_from_string(codec_data);
-				MX_I("codec  cap is=%s\n", codec_data);
-				g_object_set(current->appsrc,
-				             "caps", new_cap, NULL);
-				if (current->caps == NULL) {
-					current->caps = (char *)g_malloc(codec_data_size);
-					if (current->caps == NULL) {
-						MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-						gst_caps_unref(new_cap);
-						ret = MX_ERROR_UNKNOWN;
-						break;
-					}
-				}
-				g_stpcpy(current->caps, codec_data);
+			}
+			g_stpcpy(current->caps, codec_data);
 #endif
-				gst_caps_unref(new_cap);
-			}
+			gst_caps_unref(new_cap);
+		}
+		break;
+	case MEDIA_FORMAT_VIDEO:
+		/* Following check is safe but not mandatory. */
+		if ((current->track_index)%NO_OF_TRACK_TYPES != 0) {
+			MX_E("\n\nThis is not an video track_index. Video track_index is not in 3*n format\n\n");
+			goto ERROR;
+		}
+		if (media_packet_get_extra(packet,
+			(void **)&codec_data)) {
+			MX_E("media_packet_get_extra call failed\n");
+			ret = MX_ERROR_UNKNOWN;
 			break;
-		case MEDIA_FORMAT_VIDEO:
-			/* Following check is safe but not mandatory. */
-			if ((current->track_index)%NO_OF_TRACK_TYPES != 0) {
-				MX_E("\n\nThis is not an video track_index. Video track_index is not in 3*n format\n\n");
-				goto ERROR;
-			}
-			if (media_packet_get_extra(packet,
-			                                (void **)&codec_data)) {
-				MX_E("media_packet_get_extra call failed\n");
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			codec_data_size = strlen(codec_data) + 1;
-			MX_I("codec data is =%s size is %d\n",
-			     codec_data, codec_data_size);
-			if (current->caps == NULL ||
-			    g_strcmp0(codec_data, current->caps) != 0) {
+		}
+		codec_data_size = strlen(codec_data) + 1;
+		MX_I("codec data is =%s size is %d\n",
+		     codec_data, codec_data_size);
+		if (current->caps == NULL ||
+		    g_strcmp0(codec_data, current->caps) != 0) {
 
 #ifndef SEND_FULL_CAPS_VIA_CODEC_DATA
 
-				if (media_format_get_video_info(format,
-				                                &mimetype, &width, &height,
-				                                &avg_bps, &max_bps)) {
-					MX_E("media_format_get_video_info call failed\n");
+			if (media_format_get_video_info(format,
+				&mimetype, &width, &height,
+				&avg_bps, &max_bps)) {
+				MX_E("media_format_get_video_info call failed\n");
+				ret = MX_ERROR_UNKNOWN;
+				break;
+			}
+			if (current->caps == NULL) {
+				current->caps = (char *)g_malloc(codec_data_size);
+				if (current->caps == NULL) {
+					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
+			}
+			new_cap = gst_caps_from_string(codec_data);
+			MX_I("New cap set by codec data is=%s\n", codec_data);
+			if (__gst_codec_specific_caps(new_cap, mimetype)) {
+				MX_E("Setting Audio caps failed\n");
+				gst_caps_unref(new_cap);
+				ret = MX_ERROR_UNKNOWN;
+				break;
+			}
+			g_stpcpy(current->caps, codec_data);
+
+			if (media_format_get_video_frame_rate(format, &numerator))
+				MX_E("media_format_get_video_info call failed\n");
+			g_value_init(&val, GST_TYPE_FRACTION);
+			gst_value_set_fraction(&val, numerator, denominator);
+			gst_caps_set_value(new_cap, "framerate", &val);
+			caps_string = gst_caps_to_string(new_cap);
+			MX_I("New cap set by codec data is = %s\n",
+			     caps_string);
+			if (caps_string)
+				g_free(caps_string);
+			g_object_set(current->appsrc, "caps", new_cap, NULL);
+#else
+			/* Debugging purpose. The whole caps filter can be sent via codec_data */
+			media_packet_get_extra(packet, &codec_data);
+			codec_data_size = strlen(codec_data) + 1;
+			MX_I("extracted codec data is =%s\n", codec_data);
+			new_cap = gst_caps_from_string(codec_data);
+			MX_I("New cap is=%s\n", codec_data);
+			g_object_set(gst_handle->video_appsrc, "caps", new_cap, NULL);
+			if (current->caps == NULL) {
+				current->caps = (char *)g_malloc(codec_data_size);
 				if (current->caps == NULL) {
-					current->caps = (char *)g_malloc(codec_data_size);
-					if (current->caps == NULL) {
-						MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-						ret = MX_ERROR_UNKNOWN;
-						break;
-					}
-				}
-				new_cap = gst_caps_from_string(codec_data);
-				MX_I("New cap set by codec data is=%s\n", codec_data);
-				if (__gst_codec_specific_caps(new_cap, mimetype)) {
-					MX_E("Setting Audio caps failed\n");
+					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
 					gst_caps_unref(new_cap);
 					ret = MX_ERROR_UNKNOWN;
 					break;
 				}
-				g_stpcpy(current->caps, codec_data);
-
-				if (media_format_get_video_frame_rate(format, &numerator)) {
-					MX_E("media_format_get_video_info call failed\n");
-				}
-				g_value_init(&val, GST_TYPE_FRACTION);
-				gst_value_set_fraction(&val, numerator, denominator);
-				gst_caps_set_value(new_cap, "framerate", &val);
-				caps_string = gst_caps_to_string(new_cap);
-				MX_I("New cap set by codec data is = %s\n",
-				     caps_string);
-				if (caps_string)
-					g_free(caps_string);
-				g_object_set(current->appsrc, "caps", new_cap, NULL);
-#else
-				/*Debugging purpose. The whole caps filter can be sent via codec_data*/
-				media_packet_get_extra(packet, &codec_data);,
-				codec_data_size = strlen(codec_data) + 1;
-				MX_I("extracted codec data is =%s\n", codec_data);
-				new_cap = gst_caps_from_string(codec_data);
-				MX_I("New cap is=%s\n", codec_data);
-				g_object_set(gst_handle->video_appsrc, "caps", new_cap, NULL);
-				if (current->caps == NULL) {
-					current->caps = (char *)g_malloc(codec_data_size);
-					if (current->caps == NULL) {
-						MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-						gst_caps_unref(new_cap);
-						ret = MX_ERROR_UNKNOWN;
-						break;
-					}
-				}
-				g_stpcpy(current->caps, codec_data);
-#endif
-				gst_caps_unref(new_cap);
 			}
-			break;
-		case MEDIA_FORMAT_CONTAINER:
-		case MEDIA_FORMAT_TEXT:
-		case MEDIA_FORMAT_UNKNOWN:
-		default:
-			MX_E("Unknown format type\n");
+			g_stpcpy(current->caps, codec_data);
+#endif
+			gst_caps_unref(new_cap);
+		}
+		break;
+	case MEDIA_FORMAT_CONTAINER:
+	case MEDIA_FORMAT_TEXT:
+	case MEDIA_FORMAT_UNKNOWN:
+	default:
+		MX_E("Unknown format type\n");
 	}
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -927,7 +926,7 @@ ERROR:
 }
 
 static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
-                                         GstBuffer *buffer)
+						GstBuffer *buffer)
 {
 	MEDIAMUXER_FENTER();
 	void *pkt_data;
@@ -937,7 +936,7 @@ static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
 	MEDIAMUXER_CHECK_NULL(out_pkt);
 	/* GstMapInfo map; */
 	int ret = MX_ERROR_NONE;
-	/* copy data*/
+	/* copy data */
 	media_packet_get_buffer_size(out_pkt, &size);
 	MX_I("Media packet Buffer capacity: %llu\n", size);
 	data_ptr = (unsigned char *) g_malloc(size);
@@ -953,16 +952,16 @@ static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
 		ret = MX_ERROR_UNKNOWN;
 		goto ERROR;
 	}
-	/*if (!gst_buffer_map (buffer, &map, GST_MAP_READ)) {
+	/* if (!gst_buffer_map (buffer, &map, GST_MAP_READ)) {
 		MX_E("gst_buffer_map failed\n");
 		ret = MX_ERROR_UNKNOWN;
 		goto ERROR;
-	}*/
+	} */
 	uint64_t info;
 	memcpy(data_ptr, (char *)pkt_data, size);
 	gst_buffer_insert_memory(buffer, -1,
-	                         gst_memory_new_wrapped(0, data_ptr, size, 0,
-	                                                size, data_ptr, g_free));
+		gst_memory_new_wrapped(0, data_ptr, size, 0,
+		size, data_ptr, g_free));
 
 	if (media_packet_get_pts(out_pkt, &info)) {
 		MX_E("unable to get the pts\n");
@@ -983,7 +982,7 @@ static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
 		goto ERROR;
 	}
 	buffer->duration = info;
-	/*TBD: set falgs is not available now in media_packet*/
+	/* TBD: set falgs is not available now in media_packet */
 	media_buffer_flags_e flags;
 	if (media_packet_get_flags(out_pkt, &flags)) {
 		MX_E("unable to get the buffer size\n");
@@ -997,7 +996,7 @@ ERROR:
 }
 
 static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
-                                         media_packet_h inbuf)
+				media_packet_h inbuf)
 {
 	MEDIAMUXER_FENTER();
 	int ret = MX_ERROR_NONE;
@@ -1015,7 +1014,7 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 		else if (gst_handle->track_info.track_head) {
 			MX_E("\n\ngst_handle->track_info.track_head->track_index=%d\n", gst_handle->track_info.track_head->track_index);
 			if (gst_handle->track_info.track_head->next)
-				MX_E("\n\next=%p\tnext->track_index=%d\n", gst_handle->track_info.track_head->next,gst_handle->track_info.track_head->next->track_index);
+				MX_E("\n\next=%p\tnext->track_index=%d\n", gst_handle->track_info.track_head->next, gst_handle->track_info.track_head->next->track_index);
 		} else
 			MX_E("\n\n****Head is NULL****\n");
 		ret = MX_ERROR_INVALID_ARGUMENT;
@@ -1023,7 +1022,7 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 	}
 
 	_gst_set_caps(pHandle, inbuf, track_index);
-	MX_I("Track_index passed = %d, working-with_track_index = %d\n", track_index,current->track_index);
+	MX_I("Track_index passed = %d, working-with_track_index = %d\n", track_index, current->track_index);
 
 	GstBuffer *gst_inbuf2 = NULL;
 	gst_inbuf2 = gst_buffer_new();
@@ -1032,9 +1031,9 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 	_gst_copy_media_packet_to_buf(inbuf, gst_inbuf2);
 
 	if (track_index%NO_OF_TRACK_TYPES == 0) {  /* NO_OF_TRACK_TYPES*n for video */
-		MX_I("Waiting till start_feed of current video track, index=%d is active\n",current->track_index);
+		MX_I("Waiting till start_feed of current video track, index=%d is active\n", current->track_index);
 #ifdef ASYCHRONOUS_WRITE
-		/*poll now to make it synchronous*/
+		/* poll now to make it synchronous */
 		while (current->start_feed == 0)
 			g_usleep(WRITE_POLL_PERIOD);
 		MX_I("pushing video\n");
@@ -1050,7 +1049,7 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 			MX_E("--video appsrc push failed--\n");
 		}
 	} else if (track_index%NO_OF_TRACK_TYPES == 1) {	/* NO_OF_TRACK_TYPES*n+1 for audio */
-		MX_I(" Waiting till start_feed of current audio track, index=%d is active\n",current->track_index);
+		MX_I(" Waiting till start_feed of current audio track, index=%d is active\n", current->track_index);
 #ifdef ASYCHRONOUS_WRITE
 		while (current->start_feed == 0)
 			g_usleep(WRITE_POLL_PERIOD);
@@ -1065,7 +1064,7 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 			MX_E("--audio appsrc push failed--\n");
 		}
 	} else {
-		MX_E("Unsupported track index=%d. track_index-mod3= %d. Only 0/1/2 track index is vaild\n",track_index, track_index%NO_OF_TRACK_TYPES);
+		MX_E("Unsupported track index=%d. track_index-mod3= %d. Only 0/1/2 track index is vaild\n", track_index, track_index%NO_OF_TRACK_TYPES);
 		ret = MX_ERROR_INVALID_ARGUMENT;
 	}
 	MEDIAMUXER_FLEAVE();
@@ -1091,7 +1090,7 @@ static int gst_muxer_close_track(MMHandleType pHandle, int track_index)
 		goto ERROR;
 
 	MX_I("__gst_muxer_stop setting eos to sources:%p\n", gst_handle);
-	if (gst_handle->pipeline!= NULL) {
+	if (gst_handle->pipeline != NULL) {
 		if (track_index%NO_OF_TRACK_TYPES == 0) {
 			MX_I("\n-----EOS for videoappsrc-----\n");
 			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
@@ -1177,7 +1176,7 @@ static int gst_muxer_stop(MMHandleType pHandle)
 	MX_I("gst_muxer_stop making pipeline to ready:%p\n", gst_handle);
 	/* set pipeline state to READY */
 	MEDIAMUXER_ELEMENT_SET_STATE(GST_ELEMENT_CAST(gst_handle->pipeline),
-	                             GST_STATE_READY);
+				GST_STATE_READY);
 	MEDIAMUXER_FLEAVE();
 	return ret;
 STATE_CHANGE_FAILED:
@@ -1202,9 +1201,8 @@ mx_ret_e _gst_destroy_pipeline(mxgst_handle_t *gst_handle)
 	gst_element_set_state(gst_handle->pipeline, GST_STATE_NULL);
 
 	/* Free resources & set unused pointers to NULL */
-	if (gst_handle->output_uri != NULL) {
+	if (gst_handle->output_uri != NULL)
 		gst_handle->output_uri = NULL;
-	}
 
 	current = gst_handle->track_info.track_head;
 	while (current) {
@@ -1276,8 +1274,7 @@ int gst_set_error_cb(MMHandleType pHandle, gst_error_cb callback, void* user_dat
 		MX_E("Already set mediamuxer_error_cb\n");
 		ret = MX_ERROR_INVALID_ARGUMENT;
 		goto ERROR;
-	}
-	else {
+	} else {
 		if (!callback) {
 			ret = MX_ERROR_INVALID_ARGUMENT;
 			goto ERROR;

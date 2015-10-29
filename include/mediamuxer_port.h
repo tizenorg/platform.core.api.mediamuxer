@@ -17,11 +17,11 @@
 #ifndef __TIZEN_MEDIAMUXER_PORT_H__
 #define __TIZEN_MEDIAMUXER_PORT_H__
 
-/*=============================================================================
+/* ============================================================================
 |                                                                              |
 |  INCLUDE FILES                                                               |
 |                                                                              |
-==============================================================================*/
+============================================================================= */
 
 #include <glib.h>
 #include <mm_types.h>
@@ -300,11 +300,11 @@ extern "C" {
 
  */
 
-/*=============================================================================|
+/* ============================================================================|
 |                                                                              |
 |  GLOBAL DEFINITIONS AND DECLARATIONS                                         |
 |                                                                              |
-==============================================================================*/
+============================================================================= */
 /**
  * @brief Called when error occurs in media muxer.
  * @details Following error codes can be delivered.
@@ -344,11 +344,11 @@ typedef struct _media_port_muxer_ops {
 	int (*set_error_cb)(MMHandleType pHandle, mx_error_cb callback, void* user_data);
 } media_port_muxer_ops;
 
-/*=============================================================================
+/* ============================================================================
 |                                                                              |
 |  GLOBAL FUNCTION PROTOTYPES                                                  |
 |                                                                              |
-==============================================================================*/
+============================================================================= */
 
 /**
  * This function creates a muxer object for parsing multimedia contents. \n
@@ -502,7 +502,7 @@ int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inb
  * @param   track_index [in]  selected track
  *
  * @return  This function returns zero on success, or negative value with error
-                code.
+		code.
  * @see     mx_unprepare
  *
  * @par Example

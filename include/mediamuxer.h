@@ -261,7 +261,7 @@ int mediamuxer_resume(mediamuxer_h muxer);
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING
- * 	or #MEDIAMUXER_STATE_PAUSED.
+ *	or #MEDIAMUXER_STATE_PAUSED.
  * @post The media muxer state will be #MEDIAMUXER_STATE_READY.
  * @see mediamuxer_start()
  * @see mediamuxer_unprepare()

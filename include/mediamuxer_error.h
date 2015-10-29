@@ -52,7 +52,7 @@ extern "C" {
 #define MX_ERROR_FILE_WRITE         (MX_ERROR_CLASS | 0x07)
 /**< End of file */
 #define MX_ERROR_END_OF_FILE        (MX_ERROR_CLASS | 0x08)
-/**< Not supported API*/
+/**< Not supported API */
 #define MX_ERROR_NOT_SUPPORT_API        (MX_ERROR_CLASS | 0x09)
 /**< port regitstration failed error */
 #define MX_ERROR_PORT_REG_FAILED        (MX_ERROR_CLASS | 0x0a)
@@ -74,7 +74,7 @@ extern "C" {
 #define MX_ERROR_COMMON_INVALID_PERMISSION  (MX_ERROR_COMMON_CLASS | 6)
 /**< Out of array */
 #define MX_ERROR_COMMON_OUT_OF_ARRAY        (MX_ERROR_COMMON_CLASS | 7)
-/**< Out of value range*/
+/**< Out of value range */
 #define MX_ERROR_COMMON_OUT_OF_RANGE        (MX_ERROR_COMMON_CLASS | 8)
 /**< Attribute doesn't exist. */
 #define MX_ERROR_COMMON_ATTR_NOT_EXIST      (MX_ERROR_COMMON_CLASS | 9)

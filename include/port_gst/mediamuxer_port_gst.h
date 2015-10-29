@@ -26,11 +26,10 @@
 #define MAX_STRING_LENGTH 25
 #define NO_OF_TRACK_TYPES 3	/* Audio, Video and Subtitle */
 
-#define MEDIAMUXER_ELEMENT_SET_STATE( x_element, x_state ) \
-	MX_I("setting state [%s:%d] to [%s]\n", #x_state, x_state, GST_ELEMENT_NAME( x_element ) ); \
-	if ( GST_STATE_CHANGE_FAILURE == gst_element_set_state ( x_element, x_state) ) \
-	{ \
-		MX_E("failed to set state %s to %s\n", #x_state, GST_ELEMENT_NAME( x_element )); \
+#define MEDIAMUXER_ELEMENT_SET_STATE(x_element, x_state) \
+	MX_I("setting state [%s:%d] to [%s]\n", #x_state, x_state, GST_ELEMENT_NAME(x_element)); \
+	if (GST_STATE_CHANGE_FAILURE == gst_element_set_state(x_element, x_state)) { \
+		MX_E("failed to set state %s to %s\n", #x_state, GST_ELEMENT_NAME(x_element)); \
 		goto STATE_CHANGE_FAILED; \
 	}
 

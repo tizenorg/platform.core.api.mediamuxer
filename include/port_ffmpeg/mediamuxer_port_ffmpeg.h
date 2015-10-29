@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-/*Place holder */
+/* Place holder */
 
 #ifdef __cplusplus
 }
