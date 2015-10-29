@@ -502,7 +502,7 @@ int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inb
  * @param   track_index [in]  selected track
  *
  * @return  This function returns zero on success, or negative value with error
-                code.
+		code.
  * @see     mx_unprepare
  *
  * @par Example

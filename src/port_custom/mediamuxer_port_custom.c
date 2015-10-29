@@ -60,7 +60,7 @@ static int custom_muxer_init(MMHandleType *pHandle)
 }
 
 static int custom_muxer_set_data_sink(MMHandleType pHandle, char *uri,
-    mediamuxer_output_format_e format)
+	mediamuxer_output_format_e format)
 {
 	MEDIAMUXER_FENTER();
 	MX_E("%s:exit: Not implemented\n", __func__);
