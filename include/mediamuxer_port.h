@@ -321,28 +321,28 @@ extern "C" {
  * @see mediamuxer_set_error_cb()
  * @see mediamuxer_unset_error_cb()
  */
-typedef void (*mx_error_cb)(mediamuxer_error_e error, void *user_data);
+	typedef void (*mx_error_cb) (mediamuxer_error_e error, void *user_data);
 
 /**
  * Attribute validity structure
  */
-typedef struct _media_port_muxer_ops {
-	unsigned int n_size;
-	int (*init)(MMHandleType *pHandle);
-	/* Add new ops at the end of structure, no order change */
-	int (*set_data_sink)(MMHandleType pHandle, char *uri, mediamuxer_output_format_e format);
-	int (*add_track)(MMHandleType pHandle, media_format_h media_format, int *track_index);
-	int (*prepare)(MMHandleType pHandle);
-	int (*start)(MMHandleType pHandle);
-	int (*write_sample)(MMHandleType pHandle, int track_index, media_packet_h inbuf);
-	int (*close_track)(MMHandleType pHandle, int track_index);
-	int (*pause)(MMHandleType pHandle);
-	int (*resume)(MMHandleType pHandle);
-	int (*unprepare)(MMHandleType pHandle);
-	int (*stop)(MMHandleType pHandle);
-	int (*destroy)(MMHandleType pHandle);
-	int (*set_error_cb)(MMHandleType pHandle, mx_error_cb callback, void* user_data);
-} media_port_muxer_ops;
+	typedef struct _media_port_muxer_ops {
+		unsigned int n_size;
+		int (*init) (MMHandleType * pHandle);
+		/* Add new ops at the end of structure, no order change */
+		int (*set_data_sink) (MMHandleType pHandle, char *uri, mediamuxer_output_format_e format);
+		int (*add_track) (MMHandleType pHandle, media_format_h media_format, int *track_index);
+		int (*prepare) (MMHandleType pHandle);
+		int (*start) (MMHandleType pHandle);
+		int (*write_sample) (MMHandleType pHandle, int track_index, media_packet_h inbuf);
+		int (*close_track) (MMHandleType pHandle, int track_index);
+		int (*pause) (MMHandleType pHandle);
+		int (*resume) (MMHandleType pHandle);
+		int (*unprepare) (MMHandleType pHandle);
+		int (*stop) (MMHandleType pHandle);
+		int (*destroy) (MMHandleType pHandle);
+		int (*set_error_cb) (MMHandleType pHandle, mx_error_cb callback, void *user_data);
+	} media_port_muxer_ops;
 
 /*=============================================================================
 |                                                                              |
@@ -369,7 +369,7 @@ typedef struct _media_port_muxer_ops {
   mx_destroy(&muxer);
  * @endcode
  */
-int mx_create(MMHandleType *muxer);
+	int mx_create(MMHandleType * muxer);
 
 /**
  * This function sets the input data source to parse. \n
@@ -390,7 +390,7 @@ int mx_create(MMHandleType *muxer);
 	}
  * @endcode
  */
-int mx_set_data_sink(MMHandleType muxer, char *uri, mediamuxer_output_format_e format);
+	int mx_set_data_sink(MMHandleType muxer, char *uri, mediamuxer_output_format_e format);
 
 /**
  * This function releases muxer object and all resources which were created by
@@ -410,7 +410,7 @@ if (mx_destroy(g_muxer) != MM_ERROR_NONE)
 }
  * @endcode
  */
-int mx_destroy(MMHandleType muxer);
+	int mx_destroy(MMHandleType muxer);
 
 /**
  * This function starts/prepares the muxer object. \n
@@ -430,7 +430,7 @@ if (mx_prepare(g_muxer) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_prepare(MMHandleType muxer);
+	int mx_prepare(MMHandleType muxer);
 
 /**
  * This function starts the muxer object. \n
@@ -450,7 +450,7 @@ if (mx_start(g_muxer) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_start(MMHandleType muxer);
+	int mx_start(MMHandleType muxer);
 
 /**
  * This function adds Audio/Vidoe/Subtitle track in muxer handle \n
@@ -471,7 +471,7 @@ if (mx_add_track(g_muxer,media_format,&track_index) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_add_track(MMHandleType muxer, media_format_h media_format, int *track_index);
+	int mx_add_track(MMHandleType muxer, media_format_h media_format, int *track_index);
 
 /**
  * This function writes Audio/Vidoe/Subtitle track to file using muxer handle \n
@@ -492,7 +492,7 @@ if (mx_write_sample(g_muxer,track_id, inbuf) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inbuf);
+	int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inbuf);
 
 /**
  * This function close the selected track. \n
@@ -513,7 +513,7 @@ if (mx_close_track(g_muxer,1) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_close_track(MMHandleType mediamuxer, int track_index);
+	int mx_close_track(MMHandleType mediamuxer, int track_index);
 
 /**
  * This function stops the muxer object. \n
@@ -533,7 +533,7 @@ if (mx_stop(g_muxer) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_stop(MMHandleType mediamuxer);
+	int mx_stop(MMHandleType mediamuxer);
 
 /**
  * This function stops/un-prepares the muxer object. \n
@@ -553,7 +553,7 @@ if (mx_unprepare(g_muxer) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_unprepare(MMHandleType mediamuxer);
+	int mx_unprepare(MMHandleType mediamuxer);
 
 /**
  * This function pauses the muxing operation. \n
@@ -573,7 +573,7 @@ if (mx_pause(g_muxer) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_pause(MMHandleType mediamuxer);
+	int mx_pause(MMHandleType mediamuxer);
 
 /**
  * This function resumes the muxing operation. \n
@@ -593,7 +593,7 @@ if (mx_resume(g_muxer) != MX_ERROR_NONE)
 }
  * @endcode
  */
-int mx_resume(MMHandleType mediamuxer);
+	int mx_resume(MMHandleType mediamuxer);
 
 /**
  * This function is to set error call back function
@@ -604,9 +604,9 @@ int mx_resume(MMHandleType mediamuxer);
  *
  * @return  This function returns zero on success, or negative value with error code.
  */
-int mx_set_error_cb(MMHandleType muxer,	mediamuxer_error_cb callback, void* user_data);
+	int mx_set_error_cb(MMHandleType muxer, mediamuxer_error_cb callback, void *user_data);
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* __TIZEN_MEDIAMUXER_PORT_H__ */
+#endif							/* __TIZEN_MEDIAMUXER_PORT_H__ */

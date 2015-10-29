@@ -93,4 +93,4 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif /* __TIZEN_MEDIAMUXER_UTIL_H__ */
+#endif							/* __TIZEN_MEDIAMUXER_UTIL_H__ */

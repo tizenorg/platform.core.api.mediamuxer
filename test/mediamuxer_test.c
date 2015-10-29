@@ -66,7 +66,8 @@ char audio_extra_info[1000];
 char audio_data[1000];
 char video_extra_info[1000];
 char video_data[1000];
-static mediacodec_h g_media_codec[MAX_HANDLE] = {0};
+static mediacodec_h g_media_codec[MAX_HANDLE] = { 0 };
+
 media_format_h input_fmt = NULL;
 #if USE_INPUT_QUEUE
 media_packet_h input_buf[MAX_INPUT_BUF_NUM];
@@ -81,7 +82,7 @@ bool validate_dump = false;
 #endif
 
 GQueue input_available;
-int use_video = 1;   /* 1 to test video with codec,   0 for audio */
+int use_video = 1;				/* 1 to test video with codec,   0 for audio */
 int use_encoder = 1;
 int enc_vide_pkt_available = 0;
 char g_uri[MAX_STRING_LEN];
@@ -117,8 +118,7 @@ int track_index_aud;
 int track_index_aud2;
 
 /* demuxer sturcture for _demux_mp4() */
-typedef struct _CustomData
-{
+typedef struct _CustomData {
 	GstElement *pipeline;
 	GstElement *source;
 	GstElement *demuxer;
@@ -135,7 +135,6 @@ typedef struct _CustomData
 
 	GTimer *timer;
 } CustomData;
-
 
 /*-----------------------------------------------------------------------
 |    HELPER  FUNCTION                                                                 |
@@ -196,16 +195,15 @@ static void _input_raw_filepath(char *filename)
 
 	media_format_create(&input_fmt);
 
-	strncpy (g_uri, filename, len);
+	strncpy(g_uri, filename, len);
 	g_len = len;
 
 	bMultipleFiles = 0;
-	if (g_uri[g_len-1] == '/')
+	if (g_uri[g_len - 1] == '/')
 		bMultipleFiles = 1;
 
 	return;
 }
-
 
 /* To aid muxer-codec test */
 /**
@@ -213,10 +211,11 @@ static void _input_raw_filepath(char *filename)
  *  This is needed as MediaCodec encoder generates a packet of raw AAC data.
  *  Note the packetLen must count in the ADTS header itself.
  **/
-void _add_adts_header_for_aacenc(unsigned char *buffer, int packetLen) {
-	int profile = 2;    /* AAC LC (0x01) */
-	int freqIdx = 3;    /* 48KHz (0x03) */
-	int chanCfg = 2;    /* CPE (0x02) */
+void _add_adts_header_for_aacenc(unsigned char *buffer, int packetLen)
+{
+	int profile = 2;			/* AAC LC (0x01) */
+	int freqIdx = 3;			/* 48KHz (0x03) */
+	int chanCfg = 2;			/* CPE (0x02) */
 
 	if (samplerate == 96000)
 		freqIdx = 0;
@@ -249,10 +248,10 @@ void _add_adts_header_for_aacenc(unsigned char *buffer, int packetLen) {
 	/* fill in ADTS data */
 	buffer[0] = (char)0xFF;
 	buffer[1] = (char)0xF1;
-	buffer[2] = (char)(((profile-1)<<6) + (freqIdx<<2) +(chanCfg>>2));
-	buffer[3] = (char)(((chanCfg&3)<<6) + (packetLen>>11));
-	buffer[4] = (char)((packetLen&0x7FF) >> 3);
-	buffer[5] = (char)(((packetLen&7)<<5) + 0x1F);
+	buffer[2] = (char)(((profile - 1) << 6) + (freqIdx << 2) + (chanCfg >> 2));
+	buffer[3] = (char)(((chanCfg & 3) << 6) + (packetLen >> 11));
+	buffer[4] = (char)((packetLen & 0x7FF) >> 3);
+	buffer[5] = (char)(((packetLen & 7) << 5) + 0x1F);
 	buffer[6] = (char)0xFC;
 }
 
@@ -271,8 +270,8 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 
 	g_print("A%d write sample call. packet add:%p\n", ++count, pkt);
 
-	if (media_packet_get_buffer_size(pkt,&size)) {
-		g_print("unable to get the buffer size actual =%"PRIu64"\n",size);
+	if (media_packet_get_buffer_size(pkt, &size)) {
+		g_print("unable to get the buffer size actual =%" PRIu64 "\n", size);
 		return;
 	}
 
@@ -281,11 +280,11 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 	media_packet_get_duration(pkt, &duration);
 	/* offset */
 	media_packet_get_flags(pkt, &flags);
-	media_packet_get_extra(pkt,(void**)&codec_data);
+	media_packet_get_extra(pkt, (void **)&codec_data);
 	codec_data_size = strlen(codec_data) + 1;
 
-	g_print("***pkt attributes before writing *** Size=%"PRIu64", pts=%"PRIu64", dts=%"PRIu64", duration=%"PRIu64", flags=%d\n",size,pts,dts,duration,(int)flags);
-	g_print("Codec_data=%s\ncodec_data_size = %d\n",(char*)codec_data,codec_data_size);
+	g_print("***pkt attributes before writing *** Size=%" PRIu64 ", pts=%" PRIu64 ", dts=%" PRIu64 ", duration=%" PRIu64 ", flags=%d\n", size, pts, dts, duration, (int)flags);
+	g_print("Codec_data=%s\ncodec_data_size = %d\n", (char *)codec_data, codec_data_size);
 
 #if DUMP_OUTBUF
 	if (count == 0) {
@@ -299,7 +298,7 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 #endif
 
 	/* EOS hack for mediacodec */
-	if (count == 1758) {  /* Last buffer for SampleAAC.aac. should be replaced with a valid eos. */
+	if (count == 1758) {		/* Last buffer for SampleAAC.aac. should be replaced with a valid eos. */
 		g_print("Last Buffer Reached\n");
 #if DUMP_OUTBUF
 		fclose(fp_in);
@@ -315,7 +314,7 @@ static void _mediacodec_fill_buffer_cb(media_packet_h pkt, void *user_data)
 #endif
 	mediamuxer_write_sample(myMuxer, track_index_aud, pkt);
 
-Finalize:
+ Finalize:
 	return;
 }
 
@@ -348,13 +347,13 @@ static void _mediacodec_empty_buffer_cb(media_packet_h pkt, void *user_data)
 {
 	if (pkt != NULL) {
 #if USE_INPUT_QUEUE
-	media_packet_unset_flags(pkt, MEDIA_PACKET_CODEC_CONFIG);
-	//mc_async_queue_push(input_avaliable, pkt);
-	g_queue_push_tail(&input_available, pkt);
-	g_print("availablebuf = %p\n", pkt);
+		media_packet_unset_flags(pkt, MEDIA_PACKET_CODEC_CONFIG);
+		//mc_async_queue_push(input_avaliable, pkt);
+		g_queue_push_tail(&input_available, pkt);
+		g_print("availablebuf = %p\n", pkt);
 #else
-	g_print("Used input buffer = %p\n", pkt);
-	media_packet_destroy(pkt);
+		g_print("Used input buffer = %p\n", pkt);
+		media_packet_destroy(pkt);
 #endif
 	}
 	return;
@@ -398,7 +397,7 @@ void _mediacodec_prepare(void)
 		media_format_set_audio_bit(input_fmt, bit);
 	}
 
-	for (i=0; i < g_handle_num; i++) {
+	for (i = 0; i < g_handle_num; i++) {
 		if (g_media_codec[i] != NULL) {
 			g_print("setting codec callbacks");
 			mediacodec_set_input_buffer_used_cb(g_media_codec[i], _mediacodec_empty_buffer_cb, g_media_codec[i]);
@@ -432,11 +431,10 @@ void _mediacodec_set_codec(int codecid, int flag)
 	g_print("_mediacodec_configure\n");
 	g_print("codecid = 0x%x, flag = %d\n", codecid, flag);
 	g_print("MyTag; codecid = %d, flag = %d\n", codecid, flag);
-	if (g_media_codec[0] != NULL)
-	{
-		ret = mediacodec_set_codec(g_media_codec[0], (mediacodec_codec_type_e)codecid, flag);
-		if (ret!=  MEDIACODEC_ERROR_NONE) {
-			g_print("mediacodec set codec is failed, ret = %d, ret_hex=%x\n", ret,ret);
+	if (g_media_codec[0] != NULL) {
+		ret = mediacodec_set_codec(g_media_codec[0], (mediacodec_codec_type_e) codecid, flag);
+		if (ret != MEDIACODEC_ERROR_NONE) {
+			g_print("mediacodec set codec is failed, ret = %d, ret_hex=%x\n", ret, ret);
 			return;
 		}
 
@@ -445,7 +443,7 @@ void _mediacodec_set_codec(int codecid, int flag)
 			if (encoder) {
 				mimetype |= MEDIA_FORMAT_NV12;
 				mimetype |= MEDIA_FORMAT_RAW;
-			} else  {
+			} else {
 				if (codecid == MEDIACODEC_MPEG4)
 					mimetype |= MEDIA_FORMAT_MPEG4_SP;
 				else if (codecid == MEDIACODEC_H263)
@@ -459,8 +457,8 @@ void _mediacodec_set_codec(int codecid, int flag)
 				mimetype |= MEDIA_FORMAT_RAW;
 				mimetype |= MEDIA_FORMAT_PCM;
 			}
-		mimetype |= MEDIA_FORMAT_AUDIO;
-		g_print("[audio test] mimetype (0x%x)\n", mimetype);
+			mimetype |= MEDIA_FORMAT_AUDIO;
+			g_print("[audio test] mimetype (0x%x)\n", mimetype);
 		}
 	} else {
 		g_print("mediacodec handle is not created\n");
@@ -472,16 +470,16 @@ void _mediacodec_set_codec(int codecid, int flag)
 |    HELPER  FUNCTION                                                                 |
 -----------------------------------------------------------------------*/
 /* To aid muxer-codec test */
-int __extract_input_per_frame (FILE *fp, unsigned char *rawdata)
+int __extract_input_per_frame(FILE * fp, unsigned char *rawdata)
 {
-	int readsize=0;
+	int readsize = 0;
 	while (!feof(fp))
-		readsize += fread(rawdata+readsize, 1, 1, fp);
+		readsize += fread(rawdata + readsize, 1, 1, fp);
 	return readsize;
 }
 
 /* To aid muxer-codec test */
-unsigned int __bytestream2yuv420(FILE *fd, unsigned char* yuv)
+unsigned int __bytestream2yuv420(FILE * fd, unsigned char *yuv)
 {
 	size_t result;
 	int read_size;
@@ -490,22 +488,22 @@ unsigned int __bytestream2yuv420(FILE *fd, unsigned char* yuv)
 	if (feof(fd))
 		return 0;
 
-	read_size = width*height*3/2;
+	read_size = width * height * 3 / 2;
 
-	result = fread(buffer, 1,read_size, fd);
+	result = fread(buffer, 1, read_size, fd);
 	g_print("3\n");
 
 	if (result != read_size)
 		return -1;
 
-	memcpy(yuv, buffer, width*height*3/2);
+	memcpy(yuv, buffer, width * height * 3 / 2);
 
-	return width*height*3/2;
+	return width * height * 3 / 2;
 }
 
 /* To aid muxer-codec test */
 /** Extract Input data for AAC encoder **/
-unsigned int __extract_input_aacenc(FILE *fd, unsigned char* rawdata)
+unsigned int __extract_input_aacenc(FILE * fd, unsigned char *rawdata)
 {
 	int readsize;
 	size_t result;
@@ -514,12 +512,12 @@ unsigned int __extract_input_aacenc(FILE *fd, unsigned char* rawdata)
 	if (feof(fd))
 		return 0;
 
-	readsize =  ((samplebyte*channel)*(bit/8));
+	readsize = ((samplebyte * channel) * (bit / 8));
 	result = fread(buffer, 1, readsize, fd);
 	if (result != readsize)
 		return -1;
 
-	memcpy(rawdata, buffer,readsize);
+	memcpy(rawdata, buffer, readsize);
 
 	return readsize;
 }
@@ -542,9 +540,9 @@ int __mediacodec_process_input(void)
 
 	if (fp_src == NULL) {
 		if (bMultipleFiles) {
-			if (g_uri[g_len-1] != '/')
+			if (g_uri[g_len - 1] != '/')
 				g_uri[g_len++] = '/';
-			sprintf(g_uri+g_len, "%05d", frame_count);
+			sprintf(g_uri + g_len, "%05d", frame_count);
 		}
 		fp_src = fopen(g_uri, "r");
 		if (fp_src == NULL) {
@@ -552,7 +550,6 @@ int __mediacodec_process_input(void)
 			return MEDIACODEC_ERROR_INVALID_PARAMETER;
 		}
 	}
-
 #if USE_INPUT_QUEUE
 	in_buf = g_queue_pop_head(&input_available);
 #else
@@ -563,7 +560,7 @@ int __mediacodec_process_input(void)
 		media_packet_get_buffer_data_ptr(in_buf, &data);
 		if (data == NULL)
 			return MEDIACODEC_ERROR_INVALID_PARAMETER;
-		printf("use_encoder=%d\n",use_encoder);
+		printf("use_encoder=%d\n", use_encoder);
 
 		if (use_encoder) {
 			if (use_video) {
@@ -572,7 +569,7 @@ int __mediacodec_process_input(void)
 				if (bMultipleFiles) {
 					buf_size = __extract_input_per_frame(fp_src, data);
 					fclose(fp_src);
-					sprintf(g_uri+g_len, "%05d", frame_count+1);
+					sprintf(g_uri + g_len, "%05d", frame_count + 1);
 					fp_src = fopen(g_uri, "r");
 					if (fp_src == NULL) {
 						media_packet_set_flags(in_buf, MEDIA_PACKET_END_OF_STREAM);
@@ -584,18 +581,18 @@ int __mediacodec_process_input(void)
 						g_print("codec EOS reaced\n");
 				}
 
-				g_print("input pts = %"PRIu64"\n", pts);
-				media_packet_set_pts (in_buf, pts);
+				g_print("input pts = %" PRIu64 "\n", pts);
+				media_packet_set_pts(in_buf, pts);
 
 				if (fps != 0)
-				    pts += (GST_SECOND / fps);
+					pts += (GST_SECOND / fps);
 			} else {
 				/* Audio Encoder - AAC */
 				buf_size = __extract_input_aacenc(fp_src, data);
-				printf("audio buf_size=%d\n",buf_size);
-				/* pts is not needed for muxer, if adts header is present*/
+				printf("audio buf_size=%d\n", buf_size);
+				/* pts is not needed for muxer, if adts header is present */
 				/* media_packet_set_pts (in_buf, pts); */
-				g_print("----pts calculation: input pts = %"PRIu64", buf_size=%d samplerate=%d, samplebyte=%d\n", pts, buf_size, samplerate, samplebyte);
+				g_print("----pts calculation: input pts = %" PRIu64 ", buf_size=%d samplerate=%d, samplebyte=%d\n", pts, buf_size, samplerate, samplebyte);
 				if (samplerate != 0) {
 					pts += ((GST_SECOND / samplerate) * samplebyte);
 				}
@@ -606,26 +603,26 @@ int __mediacodec_process_input(void)
 			if (use_video && buf_size == 4) {
 				media_packet_set_flags(in_buf, MEDIA_PACKET_END_OF_STREAM);
 				media_packet_set_buffer_size(in_buf, 4);
-				mediacodec_process_input (g_media_codec[0], in_buf, 0);
+				mediacodec_process_input(g_media_codec[0], in_buf, 0);
 				g_print("\n\nEOS packet is sent\n");
 
 				return MEDIACODEC_ERROR_INVALID_INBUFFER;
 			}
 			media_packet_set_buffer_size(in_buf, buf_size);
-			g_print("%s - input_buf size = %4d  (0x%x) at %4d frame, %p\n",__func__, buf_size, buf_size, frame_count, in_buf);
+			g_print("%s - input_buf size = %4d  (0x%x) at %4d frame, %p\n", __func__, buf_size, buf_size, frame_count, in_buf);
 
-			ret = mediacodec_process_input (g_media_codec[0], in_buf, 0);
+			ret = mediacodec_process_input(g_media_codec[0], in_buf, 0);
 			if (use_video && buf_size == -1) {
-				g_print("%s - END : input_buf size = %d  frame_count : %d\n",__func__, buf_size,  frame_count);
+				g_print("%s - END : input_buf size = %d  frame_count : %d\n", __func__, buf_size, frame_count);
 				return MEDIACODEC_ERROR_INVALID_INBUFFER;
 			}
 		} else {
-			g_print("%s - [WARN] Check to input buf_size = %4d  at %4d frame, %p\n",__func__, buf_size, frame_count, in_buf);
+			g_print("%s - [WARN] Check to input buf_size = %4d  at %4d frame, %p\n", __func__, buf_size, frame_count, in_buf);
 			return MEDIACODEC_ERROR_INVALID_INBUFFER;
 		}
 
 		frame_count++;
-		g_print("returning, ret=%d, expected ret=%d\n",ret, MEDIACODEC_ERROR_NONE);
+		g_print("returning, ret=%d, expected ret=%d\n", ret, MEDIACODEC_ERROR_NONE);
 		return ret;
 	}
 
@@ -642,7 +639,7 @@ void _mediacodec_process_all(void)
 		ret = __mediacodec_process_input();
 
 		if (ret != MEDIACODEC_ERROR_NONE) {
-			g_print ("__mediacodec_process_input ret = %d\n", ret);
+			g_print("__mediacodec_process_input ret = %d\n", ret);
 			break;
 		}
 	}
@@ -655,7 +652,7 @@ void _mediacodec_process_all(void)
 |    HELPER  FUNCTION                                                                 |
 -----------------------------------------------------------------------*/
 /* Demuxer audio-appsink buffer receive callback*/
-static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
+static void __audio_app_sink_callback(GstElement * sink, CustomData * data)
 {
 	GstBuffer *buffer;
 	media_format_h audfmt;
@@ -674,7 +671,7 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 	buffer = gst_sample_get_buffer(sample);
 	if (buffer) {
 		if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
-			if (!GST_BUFFER_FLAG_IS_SET(buffer,GST_BUFFER_FLAG_DELTA_UNIT)) {
+			if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
 				/* g_print( "  Key Frame  \n"); */
 				key = 1;
 			} else {
@@ -703,16 +700,15 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 			}
 
 			media_packet_get_buffer_data_ptr(aud_pkt, (void **)&dptr);
-			memcpy((char*)dptr, map.data, map.size);
+			memcpy((char *)dptr, map.data, map.size);
 
-			if (media_packet_set_buffer_size(aud_pkt, (uint64_t)(map.size))) {
+			if (media_packet_set_buffer_size(aud_pkt, (uint64_t) (map.size))) {
 				g_print("audio set_buffer_size failed\n");
 				return;
 			}
 
 			if (media_packet_get_buffer_size(aud_pkt, &ns)) {
-				g_print("unable to set the buffer size actual =%d, fixed %"PRIu64"\n",
-					(unsigned int)map.size, ns);
+				g_print("unable to set the buffer size actual =%d, fixed %" PRIu64 "\n", (unsigned int)map.size, ns);
 				return;
 			}
 
@@ -742,8 +738,7 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 			}
 
 			/* Print count and size to indicate a received buffer */
-			g_print("Received audio buffer count : %4d (size : %5"PRIu64", pts : %12"PRIu64")\n",
-					++count, ns, buffer->pts);
+			g_print("Received audio buffer count : %4d (size : %5" PRIu64 ", pts : %12" PRIu64 ")\n", ++count, ns, buffer->pts);
 			//g_print("Audio write sample call. packet add : %p\n", aud_pkt);
 			mediamuxer_write_sample(myMuxer, track_index_aud, aud_pkt);
 			if (validate_multitrack)
@@ -755,7 +750,7 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 }
 
 /* Demuxer video-appsink buffer receive callback*/
-static void __video_app_sink_callback(GstElement *sink, CustomData *data)
+static void __video_app_sink_callback(GstElement * sink, CustomData * data)
 {
 	GstBuffer *buffer;
 	media_format_h vidfmt;
@@ -795,9 +790,9 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 			}
 
 			vsize = map.size;
-			media_format_set_video_width(vidfmt, vsize/2+1);
-			media_format_set_video_height(vidfmt, vsize/2+1);
-			/*frame rate is came from the caps filter of demuxer*/
+			media_format_set_video_width(vidfmt, vsize / 2 + 1);
+			media_format_set_video_height(vidfmt, vsize / 2 + 1);
+			/*frame rate is came from the caps filter of demuxer */
 			if (media_format_set_video_frame_rate(vidfmt, 30)) {
 				g_print("media_format_set_video_frame_rate failed\n");
 				return;
@@ -813,17 +808,16 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			media_packet_get_buffer_data_ptr(vid_pkt, (void**)&dptr);
-			memcpy((char*)dptr, map.data,map.size);
+			media_packet_get_buffer_data_ptr(vid_pkt, (void **)&dptr);
+			memcpy((char *)dptr, map.data, map.size);
 
-			if (media_packet_set_buffer_size(vid_pkt, (uint64_t)(map.size))) {
+			if (media_packet_set_buffer_size(vid_pkt, (uint64_t) (map.size))) {
 				g_print("video set_buffer_size failed\n");
 				return;
 			}
 
 			if (media_packet_get_buffer_size(vid_pkt, &ns)) {
-				g_print("unable to set the buffer size actual =%d, fixed %"PRIu64"\n",
-					(unsigned int)map.size, ns);
+				g_print("unable to set the buffer size actual =%d, fixed %" PRIu64 "\n", (unsigned int)map.size, ns);
 				return;
 			}
 
@@ -852,8 +846,7 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 			}
 
 			/* Print count and size to indicate a received buffer */
-			g_print("Received video buffer count : %4d (size : %5"PRIu64", pts : %12"PRIu64")\n",
-					++count, ns, buffer->pts);
+			g_print("Received video buffer count : %4d (size : %5" PRIu64 ", pts : %12" PRIu64 ")\n", ++count, ns, buffer->pts);
 			//g_print("Video write sample call. packet add : %p\n", vid_pkt);
 			mediamuxer_write_sample(myMuxer, track_index_vid, vid_pkt);
 			media_packet_destroy(vid_pkt);
@@ -863,7 +856,7 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 }
 
 /* demuxer audio appsink eos callback */
-static void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
+static void __audio_app_sink_eos_callback(GstElement * sink, CustomData * data)
 {
 	mediamuxer_close_track(myMuxer, track_index_aud);
 	if (validate_multitrack)
@@ -875,7 +868,7 @@ static void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
 }
 
 /* demuxer video appsink eos callback */
-static void __video_app_sink_eos_callback(GstElement *sink, CustomData *data)
+static void __video_app_sink_eos_callback(GstElement * sink, CustomData * data)
 {
 	mediamuxer_close_track(myMuxer, track_index_vid);
 	g_print("video (h264) EOS cb reached \n");
@@ -885,7 +878,7 @@ static void __video_app_sink_eos_callback(GstElement *sink, CustomData *data)
 }
 
 /* demuxer on_pad callback */
-static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
+static void __on_pad_added(GstElement * element, GstPad * pad, CustomData * data)
 {
 	GstPadLinkReturn ret;
 	GstPad *sink_pad_audioqueue = gst_element_get_static_pad(data->audioqueue, "sink");
@@ -925,7 +918,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 	} else if (have_vid_track && g_str_has_prefix(new_pad_type, "video/x-h264")) {
 		new_pad_vid_caps = gst_pad_get_current_caps(pad);
 		caps = gst_caps_to_string(new_pad_vid_caps);
-		g_print("   Video caps :%s\n",caps);
+		g_print("   Video caps :%s\n", caps);
 		vid_caps = caps;
 
 		/* Link demuxer with videoqueue */
@@ -947,7 +940,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 		goto exit;
 	}
 
-exit:
+ exit:
 	if (new_pad_caps != NULL)
 		gst_caps_unref(new_pad_caps);
 
@@ -956,18 +949,17 @@ exit:
 }
 
 /* Demuxer bus_call */
-static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
+static gboolean __bus_call(GstBus * bus, GstMessage * mesg, gpointer data)
 {
-	GMainLoop *dmxr_loop = (GMainLoop*)data;
+	GMainLoop *dmxr_loop = (GMainLoop *) data;
 
-	switch (GST_MESSAGE_TYPE(mesg))
-	{
-		case GST_MESSAGE_EOS:
-			g_print("Demuxer: End of stream\n");
-			g_main_loop_quit(dmxr_loop);
-			break;
+	switch (GST_MESSAGE_TYPE(mesg)) {
+	case GST_MESSAGE_EOS:
+		g_print("Demuxer: End of stream\n");
+		g_main_loop_quit(dmxr_loop);
+		break;
 
-		case GST_MESSAGE_ERROR:
+	case GST_MESSAGE_ERROR:
 		{
 			gchar *dbg;
 			GError *err;
@@ -978,8 +970,8 @@ static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
 			g_main_loop_quit(dmxr_loop);
 			break;
 		}
-		default:
-			break;
+	default:
+		break;
 	}
 	return TRUE;
 }
@@ -1000,11 +992,11 @@ int _demux_mp4()
 		return -1;
 	}
 
-	gst_init(NULL,NULL);
+	gst_init(NULL, NULL);
 	loop_dmx = g_main_loop_new(NULL, FALSE);
 	data.loop = loop_dmx;
 
-	/* Create gstreamer elements for demuxer*/
+	/* Create gstreamer elements for demuxer */
 	data.pipeline = gst_pipeline_new("DemuxerPipeline");
 	data.source = gst_element_factory_make("filesrc", "file-source");
 	data.demuxer = gst_element_factory_make("qtdemux", "mp4-demuxer");
@@ -1015,8 +1007,7 @@ int _demux_mp4()
 	data.video_appsink = gst_element_factory_make("appsink", "video (h264) appsink");
 	data.audio_appsink = gst_element_factory_make("appsink", "audio (AAC) appsink");
 
-	if (!data.pipeline || !data.source || !data.demuxer || !data.audioqueue
-		|| !data.dummysink || !data.videoqueue || !data.audio_appsink || !data.video_appsink) {
+	if (!data.pipeline || !data.source || !data.demuxer || !data.audioqueue || !data.dummysink || !data.videoqueue || !data.audio_appsink || !data.video_appsink) {
 		g_print("Test-Suite: One gst-element can't be created. Exiting\n");
 		return -1;
 	}
@@ -1027,8 +1018,7 @@ int _demux_mp4()
 	gst_object_unref(bus);
 
 	/* Add gstreamer-elements into gst-pipeline */
-	gst_bin_add_many(GST_BIN(data.pipeline), data.source, data.demuxer, data.dummysink, \
-		      data.audioqueue, data.videoqueue,data.audio_appsink, data.video_appsink, NULL);
+	gst_bin_add_many(GST_BIN(data.pipeline), data.source, data.demuxer, data.dummysink, data.audioqueue, data.videoqueue, data.audio_appsink, data.video_appsink, NULL);
 
 	/* we set the input filename to the source element */
 	g_object_set(G_OBJECT(data.source), "location", file_mp4, NULL);
@@ -1058,8 +1048,6 @@ int _demux_mp4()
 	return 0;
 }
 
-
-
 /*-----------------------------------------------------------------------
 |    LOCAL FUNCTION                                                                 |
 -----------------------------------------------------------------------*/
@@ -1072,9 +1060,8 @@ int test_mediamuxer_create()
 		g_print("mediamuxer create is failed\n");
 	}
 
-	g_print("Muxer->mx_handle created successfully with address = %p\n",
-	        (void *)((mediamuxer_s *)myMuxer)->mx_handle);
-	g_print("Muxer handle created successfully with address = %p\n",myMuxer);
+	g_print("Muxer->mx_handle created successfully with address = %p\n", (void *)((mediamuxer_s *) myMuxer)->mx_handle);
+	g_print("Muxer handle created successfully with address = %p\n", myMuxer);
 
 	return 0;
 }
@@ -1120,8 +1107,7 @@ int test_mediamuxer_add_track_video()
 	media_format_get_video_info(media_format, &mimetype, &width, &height, &avg_bps, &max_bps);
 
 	g_print("Video Mimetype trying to set: %x (H264 : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_H264_SP));
-	g_print("Video param trying to set: (width, height, avg_bps, max_bps): %d %d %d %d  \n",
-	        width, height, avg_bps, max_bps);
+	g_print("Video param trying to set: (width, height, avg_bps, max_bps): %d %d %d %d  \n", width, height, avg_bps, max_bps);
 
 	/* To add video track */
 	mediamuxer_add_track(myMuxer, media_format, &track_index_vid);
@@ -1163,8 +1149,7 @@ int test_mediamuxer_add_track_audio()
 	media_format_get_audio_info(media_format_a, &mimetype, &channel, &samplerate, &bit, &avg_bps);
 
 	g_print("Audio Mimetype trying to set: %x (AAC : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_AAC_LC));
-	g_print("Audio Param trying to set: (ch, samplert, bt, avg_bps) %d %d %d %d \n",
-	        channel, samplerate, bit, avg_bps);
+	g_print("Audio Param trying to set: (ch, samplert, bt, avg_bps) %d %d %d %d \n", channel, samplerate, bit, avg_bps);
 
 	/* To add audio track */
 	mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud);
@@ -1208,7 +1193,7 @@ int test_mediamuxer_pause()
 	g_print("test_mediamuxer_pause\n");
 	mediamuxer_state_e state;
 	if (mediamuxer_get_state(myMuxer, &state) == MEDIAMUXER_ERROR_NONE) {
-		g_print("Mediamuxer_state=%d\n",state);
+		g_print("Mediamuxer_state=%d\n", state);
 		if (state == MEDIAMUXER_STATE_MUXING)
 			mediamuxer_pause(myMuxer);
 	}
@@ -1250,7 +1235,7 @@ int test_mediamuxer_destroy()
 
 void app_err_cb(mediamuxer_error_e error, void *user_data)
 {
-	printf("Got Error %d from mediamuxer\n",error);
+	printf("Got Error %d from mediamuxer\n", error);
 }
 
 int test_mediamuxer_set_error_cb()
@@ -1345,16 +1330,15 @@ void _interpret_main_menu(char *cmd)
 		}
 	} else if (len == 2 && validate_with_codec) {
 		if (strncmp(cmd, "cv", 2) == 0) {
-		    g_menu_state = CURRENT_STATUS_RAW_VIDEO_FILENAME;
+			g_menu_state = CURRENT_STATUS_RAW_VIDEO_FILENAME;
 		} else if (strncmp(cmd, "ve", 2) == 0) {
-		    g_menu_state = CURRENT_STATUS_SET_VENC_INFO;
+			g_menu_state = CURRENT_STATUS_SET_VENC_INFO;
 		} else if (strncmp(cmd, "ca", 2) == 0) {
-		    g_menu_state = CURRENT_STATUS_RAW_AUDIO_FILENAME;
+			g_menu_state = CURRENT_STATUS_RAW_AUDIO_FILENAME;
 		} else if (strncmp(cmd, "ae", 2) == 0) {
-		    g_menu_state = CURRENT_STATUS_SET_AENC_INFO;
+			g_menu_state = CURRENT_STATUS_SET_AENC_INFO;
 		}
-	}
-	else {
+	} else {
 		g_print("unknown menu command. Please try again\n");
 	}
 
@@ -1395,101 +1379,101 @@ static void interpret(char *cmd)
 {
 
 	switch (g_menu_state) {
-		case CURRENT_STATUS_MAINMENU: {
-				_interpret_main_menu(cmd);
+	case CURRENT_STATUS_MAINMENU:{
+			_interpret_main_menu(cmd);
+			break;
+		}
+	case CURRENT_STATUS_MP4_FILENAME:{
+			input_filepath(cmd);
+			strcpy(file_mp4, cmd);
+			g_menu_state = CURRENT_STATUS_MAINMENU;
+			break;
+		}
+	case CURRENT_STATUS_RAW_VIDEO_FILENAME:{
+								/* "cv" */
+			use_video = 1;
+			static int codecid = 0;
+			_input_raw_filepath(cmd);
+			use_encoder = 1;
+			codecid = 0x2030;	/* video */
+			_mediacodec_set_codec(codecid, 5);
+			reset_menu_state();
+			g_menu_state = CURRENT_STATUS_MAINMENU;
+			break;
+		}
+	case CURRENT_STATUS_SET_VENC_INFO:	/* "ve" */
+		{
+			static int cnt = 0;
+			switch (cnt) {
+			case 0:
+				width = atoi(cmd);
+				cnt++;
 				break;
-			}
-		case CURRENT_STATUS_MP4_FILENAME: {
-				input_filepath(cmd);
-				strcpy(file_mp4, cmd);
-				g_menu_state = CURRENT_STATUS_MAINMENU;
+			case 1:
+				height = atoi(cmd);
+				cnt++;
 				break;
-			}
-		case CURRENT_STATUS_RAW_VIDEO_FILENAME: {	/* "cv" */
-				use_video = 1;
-				static int codecid = 0;
-				_input_raw_filepath(cmd);
-				use_encoder = 1;
-				codecid = 0x2030; /* video */
-				_mediacodec_set_codec(codecid, 5);
+			case 2:
+				fps = atol(cmd);
+				cnt++;
+				break;
+			case 3:
+				target_bits = atoi(cmd);
+				g_print("width = %d, height = %d, fps = %f, target_bits = %d\n", width, height, fps, target_bits);
+				_mediacodec_set_venc_info(width, height, fps, target_bits);
+				_mediacodec_prepare();
 				reset_menu_state();
-				g_menu_state = CURRENT_STATUS_MAINMENU;
+				cnt = 0;
+				break;
+			default:
 				break;
 			}
-		case CURRENT_STATUS_SET_VENC_INFO:	/* "ve" */
-			{
-				static int cnt = 0;
-				switch (cnt) {
-				    case 0:
-					width = atoi(cmd);
-					cnt++;
-					break;
-				    case 1:
-					height = atoi(cmd);
-					cnt++;
-					break;
-				    case 2:
-					fps = atol(cmd);
-					cnt++;
-					break;
-				    case 3:
-					target_bits = atoi(cmd);
-					g_print("width = %d, height = %d, fps = %f, target_bits = %d\n", width, height, fps, target_bits);
-					_mediacodec_set_venc_info(width, height, fps, target_bits);
-					 _mediacodec_prepare();
-					reset_menu_state();
-					cnt = 0;
-					break;
-				    default:
-					break;
-				}
-			}
+		}
 		break;
 
-		case CURRENT_STATUS_RAW_AUDIO_FILENAME:
-			{	/* "ca" */
-				use_video = 0;
-				static int codecid = 0;
-				_input_raw_filepath(cmd);
-				use_encoder = 1;
-				codecid = 0x1060; /* audio */
-				_mediacodec_set_codec(codecid, 9);
+	case CURRENT_STATUS_RAW_AUDIO_FILENAME:
+		{						/* "ca" */
+			use_video = 0;
+			static int codecid = 0;
+			_input_raw_filepath(cmd);
+			use_encoder = 1;
+			codecid = 0x1060;	/* audio */
+			_mediacodec_set_codec(codecid, 9);
+			reset_menu_state();
+			g_menu_state = CURRENT_STATUS_MAINMENU;
+			break;
+		}
+
+	case CURRENT_STATUS_SET_AENC_INFO:	/* ae */
+		{
+			static int cnt = 0;
+			switch (cnt) {
+			case 0:
+				samplerate = atoi(cmd);
+				cnt++;
+				break;
+			case 1:
+				channel = atoi(cmd);
+				cnt++;
+				break;
+			case 2:
+				bit = atoi(cmd);
+				cnt++;
+				break;
+			case 3:
+				bitrate = atoi(cmd);
+				_mediacodec_set_aenc_info(samplerate, channel, bit, bitrate);
+				_mediacodec_prepare();
 				reset_menu_state();
-				g_menu_state = CURRENT_STATUS_MAINMENU;
+				cnt = 0;
+				break;
+			default:
 				break;
 			}
-
-		case CURRENT_STATUS_SET_AENC_INFO:  /* ae */
-			{
-				static int cnt = 0;
-				switch (cnt)
-				{
-				    case 0:
-					samplerate = atoi(cmd);
-					cnt++;
-					break;
-				    case 1:
-					channel = atoi(cmd);
-					cnt++;
-					break;
-				    case 2:
-					bit = atoi(cmd);
-					cnt++;
-					break;
-				    case 3:
-					bitrate = atoi(cmd);
-					_mediacodec_set_aenc_info(samplerate, channel,bit,bitrate);
-					 _mediacodec_prepare();
-					reset_menu_state();
-					cnt = 0;
-					break;
-				    default:
-					break;
-				}
-			}
-			break;
-		default:
-			break;
+		}
+		break;
+	default:
+		break;
 	}
 	g_timeout_add(100, timeout_menu_display, 0);
 }
@@ -1533,7 +1517,7 @@ static void display_sub_basic()
  * @remark
  * @see
  */
-gboolean input(GIOChannel *channel)
+gboolean input(GIOChannel * channel)
 {
 	gchar buf[MAX_STRING_LEN];
 	gsize read;

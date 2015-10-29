@@ -126,7 +126,7 @@ static gboolean _generate_default_ini(void);
 
 static void _mx_ini_check_ini_status(void);
 
-int mx_ini_load(mx_ini_t *ini)
+int mx_ini_load(mx_ini_t * ini)
 {
 	dictionary *dict = NULL;
 
@@ -155,17 +155,14 @@ int mx_ini_load(mx_ini_t *ini)
 	/* get ini values */
 	memset(ini, 0, sizeof(mx_ini_t));
 
-	if (dict) {		/* if dict is available */
+	if (dict) {					/* if dict is available */
 		/* general */
-		MEDIAMUXER_INI_GET_STRING(dict, ini->port_name,
-		                          "port_in_use:mediamuxer_port",
-		                          DEFAULT_PORT);
+		MEDIAMUXER_INI_GET_STRING(dict, ini->port_name, "port_in_use:mediamuxer_port", DEFAULT_PORT);
 	} else {
 		/* if dict is not available just fill
 		   the structure with default value */
 		MX_W("failed to load ini. using hardcoded default\n");
-		strncpy(ini->port_name, DEFAULT_PORT,
-		        MEDIAMUXER_INI_MAX_STRLEN - 1);
+		strncpy(ini->port_name, DEFAULT_PORT, MEDIAMUXER_INI_MAX_STRLEN - 1);
 	}
 
 	if (0 == strcmp(ini->port_name, "GST_PORT")) {
@@ -175,8 +172,7 @@ int mx_ini_load(mx_ini_t *ini)
 	} else if (0 == strcmp(ini->port_name, "CUSTOM_PORT")) {
 		ini->port_type = CUSTOM_PORT;
 	} else {
-		MX_E("Invalid port is set to [%s] [%d]\n", ini->port_name,
-		     ini->port_type);
+		MX_E("Invalid port is set to [%s] [%d]\n", ini->port_name, ini->port_type);
 		goto ERROR;
 	}
 	MX_L("The port is set to [%s] [%d]\n", ini->port_name, ini->port_type);
@@ -192,7 +188,7 @@ int mx_ini_load(mx_ini_t *ini)
 	MX_L("port_type : %d\n", ini->port_type);
 
 	return MM_ERROR_NONE;
-ERROR:
+ ERROR:
 	return MX_COURRPTED_INI;
 }
 
@@ -204,8 +200,7 @@ static void _mx_ini_check_ini_status(void)
 		MX_W("failed to get muxer ini status\n");
 	} else {
 		if (ini_buff.st_size < 5) {
-			MX_W("muxer.ini file size=%d, Corrupted! So, Removed\n",
-			     (int)ini_buff.st_size);
+			MX_W("muxer.ini file size=%d, Corrupted! So, Removed\n", (int)ini_buff.st_size);
 
 			if (g_remove(MEDIAMUXER_INI_DEFAULT_PATH) == -1)
 				MX_E("failed to delete corrupted ini");
@@ -226,8 +221,7 @@ static gboolean _generate_default_ini(void)
 		return FALSE;
 
 	/* writing default ini file */
-	if (strlen(default_ini) !=
-	    fwrite(default_ini, 1, strlen(default_ini), fp)) {
+	if (strlen(default_ini) != fwrite(default_ini, 1, strlen(default_ini), fp)) {
 		fclose(fp);
 		return FALSE;
 	}
@@ -237,4 +231,4 @@ static gboolean _generate_default_ini(void)
 }
 #endif
 
-#endif /* #ifdef _MEDIAMUXER_INI_C_ */
+#endif							/* #ifdef _MEDIAMUXER_INI_C_ */

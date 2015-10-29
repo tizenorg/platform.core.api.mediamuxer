@@ -24,7 +24,7 @@
 #include <gst/video/video-format.h>
 
 #define MAX_STRING_LENGTH 25
-#define NO_OF_TRACK_TYPES 3	/* Audio, Video and Subtitle */
+#define NO_OF_TRACK_TYPES 3		/* Audio, Video and Subtitle */
 
 #define MEDIAMUXER_ELEMENT_SET_STATE( x_element, x_state ) \
 	MX_I("setting state [%s:%d] to [%s]\n", #x_state, x_state, GST_ELEMENT_NAME( x_element ) ); \
@@ -38,49 +38,49 @@
 extern "C" {
 #endif
 
-typedef enum {
-	_GST_EVENT_TYPE_COMPLETE,
-	_GST_EVENT_TYPE_ERROR,
-	_GST_EVENT_TYPE_EOS,
-	_GST_EVENT_TYPE_NUM
-} _gst_event_e;
+	typedef enum {
+		_GST_EVENT_TYPE_COMPLETE,
+		_GST_EVENT_TYPE_ERROR,
+		_GST_EVENT_TYPE_EOS,
+		_GST_EVENT_TYPE_NUM
+	} _gst_event_e;
 
 /* GST port Private data */
-typedef struct _mx_gst_track {
-	void *media_format;
-	char *caps;
-	int track_index;
-	int start_feed;
-	int stop_feed;
-	GstElement *appsrc;		/* Input buffers to be muxed */
-	GstElement *parser;
-	struct _mx_gst_track *next;
-} mx_gst_track;
+	typedef struct _mx_gst_track {
+		void *media_format;
+		char *caps;
+		int track_index;
+		int start_feed;
+		int stop_feed;
+		GstElement *appsrc;		/* Input buffers to be muxed */
+		GstElement *parser;
+		struct _mx_gst_track *next;
+	} mx_gst_track;
 
-typedef struct track_info {
-	int audio_track_cnt;
-	int video_track_cnt;
-	int subtitle_track_cnt;
-	int total_track_cnt;
-	mx_gst_track *track_head;
-} mx_gst_track_info;
+	typedef struct track_info {
+		int audio_track_cnt;
+		int video_track_cnt;
+		int subtitle_track_cnt;
+		int total_track_cnt;
+		mx_gst_track *track_head;
+	} mx_gst_track_info;
 
-typedef struct _mxgst_handle_t {
-	void *hmux;			/**< mux handle */
-	int state;			/**< mx current state */
-	bool is_prepared;
-	mx_gst_track_info track_info;
-	mediamuxer_output_format_e muxed_format;
-	char *output_uri;
-	bool eos_flg;
-	guint bus_watch_id;
-	GstElement *pipeline;
-	GstElement *muxer;
-	GstElement *sink;			/* sink for the muxed output */
-	char *saveLocation;			/* Save path for muxed data */
-	void* user_cb[_GST_EVENT_TYPE_NUM];	/* for user cb */
-	void* user_data[_GST_EVENT_TYPE_NUM];
-} mxgst_handle_t;
+	typedef struct _mxgst_handle_t {
+		void *hmux;		/**< mux handle */
+		int state;		/**< mx current state */
+		bool is_prepared;
+		mx_gst_track_info track_info;
+		mediamuxer_output_format_e muxed_format;
+		char *output_uri;
+		bool eos_flg;
+		guint bus_watch_id;
+		GstElement *pipeline;
+		GstElement *muxer;
+		GstElement *sink;		/* sink for the muxed output */
+		char *saveLocation;		/* Save path for muxed data */
+		void *user_cb[_GST_EVENT_TYPE_NUM];	/* for user cb */
+		void *user_data[_GST_EVENT_TYPE_NUM];
+	} mxgst_handle_t;
 
 /**
  * @brief Called when the error has occured.
@@ -92,9 +92,9 @@ typedef struct _mxgst_handle_t {
  * @see mediamuxer_set_error_cb()
  * @see mediamuxer_unset_error_cb()
  */
-typedef void (*gst_error_cb)(mediamuxer_error_e error, void *user_data);
+	typedef void (*gst_error_cb) (mediamuxer_error_e error, void *user_data);
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* __TIZEN_MEDIAMUXER_PORT_GST_H__ */
+#endif							/* __TIZEN_MEDIAMUXER_PORT_GST_H__ */

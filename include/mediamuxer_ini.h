@@ -64,20 +64,20 @@ mediamuxer_port = GST_PORT \n\
 \n\
 "
 
-typedef enum {
-	GST_PORT = 0,
-	FFMPEG_PORT,
-	CUSTOM_PORT,
-} port_mode;
+	typedef enum {
+		GST_PORT = 0,
+		FFMPEG_PORT,
+		CUSTOM_PORT,
+	} port_mode;
 
 /* @ mark means the item has tested */
-typedef struct __mx_ini {
-	port_mode port_type;
-	/* general */
-	gchar port_name[MEDIAMUXER_INI_MAX_STRLEN];
-} mx_ini_t;
+	typedef struct __mx_ini {
+		port_mode port_type;
+		/* general */
+		gchar port_name[MEDIAMUXER_INI_MAX_STRLEN];
+	} mx_ini_t;
 
-int mx_ini_load(mx_ini_t *ini);
+	int mx_ini_load(mx_ini_t * ini);
 
 #ifdef __cplusplus
 }

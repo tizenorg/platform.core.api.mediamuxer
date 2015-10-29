@@ -59,4 +59,4 @@
  * mediamuxer_destroy()
  */
 
-#endif  /* __TIZEN_MEDIAMUXER_DOC_H__ */
+#endif							/* __TIZEN_MEDIAMUXER_DOC_H__ */
