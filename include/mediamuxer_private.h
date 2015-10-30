@@ -29,24 +29,26 @@ extern "C" {
 #endif
 #define LOG_TAG "TIZEN_N_MEDIAMUXER"
 
-#define MUXER_CHECK_CONDITION(condition,error,msg)     \
-	do \
-	{ \
-		if (condition) {} else \
-			{ MX_E("[%s] %s(0x%08x)",__FUNCTION__, msg,error); return error;}; \
-	}while(0)
+#define MUXER_CHECK_CONDITION(condition, error, msg)     \
+	do { \
+		if (condition) { \
+		} else { \
+			MX_E("[%s] %s(0x%08x)", __FUNCTION__, msg, error); \
+			return error; \
+		} \
+	} while (0)
 
 #define MUXER_INSTANCE_CHECK(muxer)   \
 	MUXER_CHECK_CONDITION(muxer != NULL, \
-	                      MEDIAMUXER_ERROR_INVALID_PARAMETER,"MUXER_ERROR_INVALID_PARAMETER")
+		MEDIAMUXER_ERROR_INVALID_PARAMETER, "MUXER_ERROR_INVALID_PARAMETER")
 
-#define MUXER_STATE_CHECK(muxer,expected_state)       \
+#define MUXER_STATE_CHECK(muxer, expected_state)       \
 	MUXER_CHECK_CONDITION(muxer->state == expected_state, \
-	                      MEDIAMUXER_ERROR_INVALID_STATE,"MUXER_ERROR_INVALID_STATE")
+			MEDIAMUXER_ERROR_INVALID_STATE, "MUXER_ERROR_INVALID_STATE")
 
 #define MUXER_NULL_ARG_CHECK(arg)      \
-	MUXER_CHECK_CONDITION(arg != NULL,MEDIAMUXER_ERROR_INVALID_PARAMETER, \
-	                      "MUXER_ERROR_INVALID_PARAMETER")
+	MUXER_CHECK_CONDITION(arg != NULL, MEDIAMUXER_ERROR_INVALID_PARAMETER, \
+				"MUXER_ERROR_INVALID_PARAMETER")
 
 /**
  * @brief Enumerations of media muxer state
