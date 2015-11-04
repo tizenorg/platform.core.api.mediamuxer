@@ -466,6 +466,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 					if (gst_pad_link(vid_src, video_pad) != GST_PAD_LINK_OK)
 						MX_E("video parser to muxer link failed");
+
+					gst_object_unref(GST_OBJECT(vid_src));
+					gst_object_unref(GST_OBJECT(video_pad));
 				}
 			}
 		}
@@ -512,6 +515,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 					if (gst_pad_link(aud_src, audio_pad) != GST_PAD_LINK_OK)
 						MX_E("audio parser to muxer link failed");
+
+					gst_object_unref(GST_OBJECT(aud_src));
+					gst_object_unref(GST_OBJECT(audio_pad));
 				}
 			}
 		}
@@ -1067,6 +1073,8 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 		MX_E("Unsupported track index=%d. track_index-mod3= %d. Only 0/1/2 track index is vaild\n", track_index, track_index%NO_OF_TRACK_TYPES);
 		ret = MX_ERROR_INVALID_ARGUMENT;
 	}
+	/* Unref the buffer, as it is pushed into the appsrc already */
+	gst_buffer_unref(gst_inbuf2);
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -1207,11 +1215,14 @@ mx_ret_e _gst_destroy_pipeline(mxgst_handle_t *gst_handle)
 	current = gst_handle->track_info.track_head;
 	while (current) {
 		prev = current;
-		if (current->media_format)
-			current->media_format = NULL;
-		if (current->caps)
-			g_free(current->caps);
-		current = current->next;
+
+		current = current->next; /* Update current */
+
+		/* Free prev & its contents */
+		if (prev->media_format)
+			prev->media_format = NULL;
+		if (prev->caps)
+			g_free(prev->caps);
 		g_free(prev);
 	}
 
