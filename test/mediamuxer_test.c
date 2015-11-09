@@ -108,7 +108,8 @@ bool validate_multitrack = false;
 bool aud_eos = 0;
 bool vid_eos = 0;
 char *aud_caps, *vid_caps;
-char file_mp4[1000];
+char file_mp4[2048];
+char data_sink[2048];
 bool have_mp4 = false;
 bool have_vid_track = false;
 bool have_aud_track = false;
@@ -135,6 +136,8 @@ typedef struct _CustomData {
 	GTimer *timer;
 } CustomData;
 
+const gchar *new_pad_type_aud = NULL; /* demuxer pad type for audio */
+const gchar *new_pad_type_vid = NULL; /* demuxer pad type for video */
 
 /*-----------------------------------------------------------------------
 |    HELPER  FUNCTION                                                                 |
@@ -682,9 +685,18 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AAC)) {
-				g_print("media_format_set_audio_mime failed\n");
-				return;
+			if (g_str_has_prefix(new_pad_type_aud, "audio/mpeg")) {
+				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AAC_LC)) {
+					g_print("media_format_set_audio_mime failed\n");
+					return;
+				}
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR")
+				|| g_str_has_prefix(new_pad_type_aud, "audio/x-amr-wb-sh")
+				|| g_str_has_prefix(new_pad_type_aud, "audio/x-amr-nb-sh")) {
+				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AMR_NB)) {
+					g_print("media_format_set_audio_mime failed\n");
+					return;
+				}
 			}
 
 			if (media_packet_create(audfmt, NULL, NULL, &aud_pkt)) {
@@ -775,9 +787,16 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H264_SP)) {
-				g_print("media_format_set_vidio_mime failed\n");
-				return;
+			if (g_str_has_prefix(new_pad_type_vid, "video/x-h264")) {
+				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H264_SP)) {
+					g_print("media_format_set_vidio_mime failed\n");
+					return;
+				}
+			} else if (g_str_has_prefix(new_pad_type_vid, "video/x-h263")) {
+				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H263)) {
+					g_print("media_format_set_vidio_mime failed\n");
+					return;
+				}
 			}
 
 			if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
@@ -861,7 +880,7 @@ static void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
 	mediamuxer_close_track(myMuxer, track_index_aud);
 	if (validate_multitrack)
 		mediamuxer_close_track(myMuxer, track_index_aud2);
-	g_print("audio (AAC) EOS cb reached \n");
+	g_print("Encoded Audio EOS cb reached \n");
 	aud_eos = 1;
 	if (!have_vid_track || vid_eos == 1)
 		g_main_loop_quit(data->loop);
@@ -871,7 +890,7 @@ static void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
 static void __video_app_sink_eos_callback(GstElement *sink, CustomData *data)
 {
 	mediamuxer_close_track(myMuxer, track_index_vid);
-	g_print("video (h264) EOS cb reached \n");
+	g_print("Encoded video EOS cb reached \n");
 	vid_eos = 1;
 	if (!have_aud_track || aud_eos == 1)
 		g_main_loop_quit(data->loop);
@@ -895,7 +914,8 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 	new_pad_struct = gst_caps_get_structure(new_pad_caps, 0);
 	new_pad_type = gst_structure_get_name(new_pad_struct);
 
-	if (have_aud_track && g_str_has_prefix(new_pad_type, "audio/mpeg")) {
+	if (have_aud_track && (g_str_has_prefix(new_pad_type, "audio/mpeg")
+		|| g_str_has_prefix(new_pad_type, "audio/AMR"))) {
 		new_pad_aud_caps = gst_pad_get_current_caps(pad);
 		caps = gst_caps_to_string(new_pad_aud_caps);
 		g_print("   Audio caps :%s\n", caps);
@@ -907,7 +927,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 			g_print("   Type is but link failed.\n %s", new_pad_type);
 		else
 			g_print("   Link succeeded (type '%s').\n", new_pad_type);
-
+		new_pad_type_aud = new_pad_type;
 		gst_element_link(data->audioqueue, data->audio_appsink);
 		g_object_set(data->audio_appsink, "emit-signals", TRUE, NULL);
 		g_signal_connect(data->audio_appsink, "new-sample", G_CALLBACK(__audio_app_sink_callback), data);
@@ -915,7 +935,8 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 		/* Link audioqueue->audio_appsink and save/Give to appsrc of muxer */
 		gst_element_set_state(data->audio_appsink, GST_STATE_PLAYING);
 		/* one has to set the newly added element to the same state as the rest of the elements. */
-	} else if (have_vid_track && g_str_has_prefix(new_pad_type, "video/x-h264")) {
+	} else if (have_vid_track && (g_str_has_prefix(new_pad_type, "video/x-h264")
+		|| g_str_has_prefix(new_pad_type, "video/x-h263"))) {
 		new_pad_vid_caps = gst_pad_get_current_caps(pad);
 		caps = gst_caps_to_string(new_pad_vid_caps);
 		g_print("   Video caps :%s\n", caps);
@@ -927,7 +948,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 			g_print("   Type is '%s' but link failed.\n", new_pad_type);
 		else
 			g_print("   Link succeeded (type '%s').\n", new_pad_type);
-
+		new_pad_type_vid = new_pad_type;
 		gst_element_link(data->videoqueue, data->video_appsink);
 		g_object_set(data->video_appsink, "emit-signals", TRUE, NULL);
 		g_signal_connect(data->video_appsink, "new-sample", G_CALLBACK(__video_app_sink_callback), data);
@@ -1004,8 +1025,8 @@ int _demux_mp4()
 	data.videoqueue = gst_element_factory_make("queue", "video-queue");
 
 	data.dummysink = gst_element_factory_make("fakesink", "fakesink");
-	data.video_appsink = gst_element_factory_make("appsink", "video (h264) appsink");
-	data.audio_appsink = gst_element_factory_make("appsink", "audio (AAC) appsink");
+	data.video_appsink = gst_element_factory_make("appsink", "encoded_video_appsink");
+	data.audio_appsink = gst_element_factory_make("appsink", "encoded_audio_appsink");
 
 	if (!data.pipeline || !data.source || !data.demuxer || !data.audioqueue
 		|| !data.dummysink || !data.videoqueue || !data.audio_appsink || !data.video_appsink) {
@@ -1072,15 +1093,29 @@ int test_mediamuxer_create()
 
 int test_mediamuxer_set_data_sink()
 {
-	char *op_uri = "MuxTest.mp4";
+	char *op_uri = "\0";
 	int ret = 0;
 	g_print("test_mediamuxer_set_data_sink\n");
 
-	/* Set data source after creating */
-	ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_MP4);
-	if (ret != MEDIAMUXER_ERROR_NONE)
+		/* Set data source after creating */
+	g_print("\nData_sink choosen is: %s\n",data_sink);
+
+	/* Set data sink after creating */
+	if (strncmp(data_sink,"1",1) == 0 || strncmp(data_sink,"mp4",3) == 0) {
+		op_uri = "MuxTest.mp4";
+		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_MP4);
+	} else if (strncmp(data_sink,"2",1) == 0 || strncmp(data_sink,"3gp",3) == 0) {
+		op_uri = "MuxTest.3gp";
+		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_3GP);
+	} else if (strncmp(data_sink,"3",1) == 0 || strncmp(data_sink,"4",1) == 0) {
+		op_uri = "MuxTest.3gp";
+		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_3GP);
+	}
+
+	if (ret != MEDIAMUXER_ERROR_NONE) {
 		g_print("mediamuxer_set_data_sink is failed\n");
-	return 0;
+	}
+	return ret;
 }
 
 int test_mediamuxer_add_track_video()
@@ -1095,7 +1130,19 @@ int test_mediamuxer_add_track_video()
 	media_format_create(&media_format);
 
 	/* MEDIA_FORMAT_H264_SP  MEDIA_FORMAT_H264_MP  MEDIA_FORMAT_H264_HP */
-	media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP);
+	if (strncmp(data_sink,"1",1) == 0 || strncmp(data_sink,"mp4",3) == 0) {
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink,"2",1) == 0 || strncmp(data_sink,"3gp",3) == 0) {
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink,"3",1) == 0) {
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink,"4",1) == 0) {
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	}
 
 	if (validate_with_codec) {
 		media_format_set_video_width(media_format, width);
@@ -1130,9 +1177,18 @@ int test_mediamuxer_add_track_audio()
 	g_print("test_mediamuxer_add_track_audio\n");
 	media_format_create(&media_format_a);
 
-	/* MEDIA_FORMAT_AAC_LC  MEDIA_FORMAT_AAC_HE  MEDIA_FORMAT_AAC_HE_PS */
-	if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
-		g_print("Problem during media_format_set_audio_mime operation\n");
+	if (strncmp(data_sink,"1",1) == 0 || strncmp(data_sink,"mp4",3) == 0) {
+		/* MEDIA_FORMAT_AAC_LC  MEDIA_FORMAT_AAC_HE  MEDIA_FORMAT_AAC_HE_PS */
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink,"2",1) == 0 || strncmp(data_sink,"3gp",3) == 0
+			|| strncmp(data_sink,"3",1) == 0) {
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink,"4",1) == 0) {
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
+	}
 
 	if (validate_with_codec) {
 		if (media_format_set_audio_channel(media_format_a, channel) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
@@ -1144,7 +1200,7 @@ int test_mediamuxer_add_track_audio()
 		if (media_format_set_audio_channel(media_format_a, 2) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_channel operation\n");
 		media_format_set_audio_samplerate(media_format_a, 44100);
-		media_format_set_audio_bit(media_format_a, 32);
+		media_format_set_audio_bit(media_format_a, 16);
 		media_format_set_audio_avg_bps(media_format_a, 128000);
 	}
 
@@ -1263,6 +1319,7 @@ void quit_testApp(void)
 enum {
 	CURRENT_STATUS_MAINMENU,
 	CURRENT_STATUS_MP4_FILENAME,
+	CURRENT_STATUS_DATA_SINK,
 	CURRENT_STATUS_RAW_VIDEO_FILENAME,
 	CURRENT_STATUS_RAW_AUDIO_FILENAME,
 	CURRENT_STATUS_SET_VENC_INFO,
@@ -1291,7 +1348,7 @@ void _interpret_main_menu(char *cmd)
 		if (strncmp(cmd, "c", 1) == 0) {
 			test_mediamuxer_create();
 		} else if (strncmp(cmd, "o", 1) == 0) {
-			test_mediamuxer_set_data_sink();
+			g_menu_state = CURRENT_STATUS_DATA_SINK;
 		} else if (strncmp(cmd, "d", 1) == 0) {
 			test_mediamuxer_destroy();
 		} else if (strncmp(cmd, "e", 1) == 0) {
@@ -1355,9 +1412,12 @@ static void displaymenu(void)
 		display_sub_basic();
 	} else if (g_menu_state == CURRENT_STATUS_MP4_FILENAME) {
 		if (!validate_with_codec) {
-			g_print("*** input mp4 file path:\n");
+			g_print("*** input video file path:\n");
 			g_print("[This is the file from where demuxed data is fed to muxer]:");
 		}
+	} else if (g_menu_state == CURRENT_STATUS_DATA_SINK) {
+		g_print("*** input the datasink container format:\n");
+		g_print("(1) mp4 \n(2) 3gp (h264 + AAC) \n(3) 3gp (h263 + AAC) \n(4) 3gp (h263 + AMR) \n");
 	} else if (g_menu_state == CURRENT_STATUS_RAW_VIDEO_FILENAME) {
 		g_print("*** input raw video file name");
 	} else if (g_menu_state == CURRENT_STATUS_SET_VENC_INFO) {
@@ -1390,6 +1450,12 @@ static void interpret(char *cmd)
 	case CURRENT_STATUS_MP4_FILENAME: {
 			input_filepath(cmd);
 			strcpy(file_mp4, cmd);
+			g_menu_state = CURRENT_STATUS_MAINMENU;
+			break;
+		}
+	case CURRENT_STATUS_DATA_SINK: {
+			strcpy(data_sink, cmd);
+			test_mediamuxer_set_data_sink();
 			g_menu_state = CURRENT_STATUS_MAINMENU;
 			break;
 		}

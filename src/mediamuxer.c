@@ -83,8 +83,9 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
 	}
 
-	if (format != MEDIAMUXER_CONTAINER_FORMAT_MP4) {
-		MX_E("\n Unsupported format: %d \n", format);
+	if (format != MEDIAMUXER_CONTAINER_FORMAT_MP4
+		&& format != MEDIAMUXER_CONTAINER_FORMAT_3GP) {
+		MX_E("Unsupported Container format: %d \n", format);
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
 	}
 	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {

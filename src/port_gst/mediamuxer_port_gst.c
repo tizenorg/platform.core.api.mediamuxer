@@ -169,40 +169,44 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 
 	if (media_format_get_video_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
 		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
-		if (mimetype == MEDIA_FORMAT_H264_SP
-			|| mimetype == MEDIA_FORMAT_H264_MP
-			|| mimetype == MEDIA_FORMAT_H264_HP) {
+		if ((mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
+				&& (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP
+				|| mimetype == MEDIA_FORMAT_H263))
+			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP
+				&& (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP
+				|| mimetype == MEDIA_FORMAT_H263))) {
 
 			current->track_index = NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.video_track_cnt);
 			(mx_handle_gst->track_info.video_track_cnt)++;
 			(mx_handle_gst->track_info.total_track_cnt)++;
 			*track_index = current->track_index;
 
-			MX_I("Video track added successfully: %p \n", current->media_format);
-			MX_I("Video track added successfully_head: %p \n", mx_handle_gst->track_info.track_head->media_format);
+			MX_I("Video track added successfully: %p, with head: %p \n",
+				current->media_format, mx_handle_gst->track_info.track_head->media_format);
 		}  else {
-			MX_E("Unsupported MIME Type\n");
+			MX_E("Unsupported/Mismatched video MIME Type: %x\n", mimetype);
 		}
 	} else if (media_format_get_audio_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
 		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
-		if (mimetype == MEDIA_FORMAT_AAC ||
-		    mimetype == MEDIA_FORMAT_AAC_LC ||
-		    mimetype == MEDIA_FORMAT_AAC_HE ||
-		    mimetype == MEDIA_FORMAT_AAC_HE_PS)  {
+		if ((mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
+				&& (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS))
+			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP
+				&& (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS
+				|| mimetype == MEDIA_FORMAT_AMR_NB))) {
 
 			current->track_index = 1 + NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.audio_track_cnt);
 			(mx_handle_gst->track_info.audio_track_cnt)++;
 			(mx_handle_gst->track_info.total_track_cnt)++;
 			*track_index = current->track_index;
 
-			MX_I("Audio track added successfully: %p \n", current->media_format);
-			MX_I("Audio track added successfully_head: %p \n", mx_handle_gst->track_info.track_head->media_format);
+			MX_I("Audio track added successfully: %p, with head: %p \n",
+				current->media_format, mx_handle_gst->track_info.track_head->media_format);
 
 		} else {
-			MX_E("Unsupported MIME Type\n");
+			MX_E("Unsupported/Mismatched audio MIME Type: %x\n", mimetype);
 		}
 	} else {
-		MX_E("Unsupported A/V MIME Type\n");
+		MX_E("Unsupported A/V MIME Type: %x\n", mimetype);
 	}
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -397,6 +401,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	int vid_track_cnt = 0;
 	int aud_track_cnt = 0;
 	mx_gst_track *current = NULL;
+	media_format_mimetype_e mimetype = 0;
 
 	/* Initialize GStreamer */
 	/* Note: Replace the arguments of gst_init to pass the command line args to GStreamer. */
@@ -408,9 +413,19 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	/* Link the pipeline */
 	gst_handle->sink = gst_element_factory_make("filesink", "muxer filesink");
 
-	if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4) {
-		gst_handle->muxer = gst_element_factory_make("qtmux", "media-muxer");
-		/* gst_element_factory_make("mp4mux", "media-muxer"); */
+	if (gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_MP4
+		&& gst_handle->muxed_format !=MEDIAMUXER_CONTAINER_FORMAT_3GP) {
+		MX_E("Unsupported format. Currently supports only MP4 & 3GP");
+		ret = MEDIAMUXER_ERROR_INVALID_PATH;
+		goto ERROR;
+	} else {
+		if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4)
+			gst_handle->muxer = gst_element_factory_make("qtmux", "qtmux");
+			/* gst_element_factory_make("mp4mux", "mp4mux"); */
+		else if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP)
+			gst_handle->muxer = gst_element_factory_make("3gppmux", "3gppmux");
+			/* gst_handle->muxer = gst_element_factory_make("avmux_3gp", "avmux_3gp");*/
+			/* gst_handle->muxer = gst_element_factory_make("qtmux", "qtmux"); */
 
 		if ((!gst_handle->pipeline) || (!gst_handle->muxer) || (!gst_handle->sink)) {
 			MX_E("One element could not be created. Exiting.\n");
@@ -432,7 +447,16 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					sprintf(str_parser, "video_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
-					current->parser = gst_element_factory_make("h264parse", str_parser);
+
+					if (media_format_get_video_info((media_format_h)(current->media_format), &mimetype, NULL, NULL, NULL, NULL)
+						!= MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+							if (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP)
+								current->parser = gst_element_factory_make("h264parse", str_parser);
+							else if (mimetype == MEDIA_FORMAT_H263 || mimetype == MEDIA_FORMAT_H263P)
+								current->parser = gst_element_factory_make("h263parse", str_parser);
+					} else {
+						MX_E("Can't retrive mimetype for the current track. Unsupported MIME Type\n");
+					}
 
 					if ((!current->appsrc)  || (!current->parser)) {
 						MX_E("One element (video_appsrc/vparse) could not be created. Exiting.\n");
@@ -447,6 +471,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent fucntions to each track */
+					MX_I("\nRegistering video callback for cur->tr_ind = %d\n",current->track_index);
 					g_signal_connect(current->appsrc, "need-data",
 						G_CALLBACK(_video_start_feed), current);
 					g_signal_connect(current->appsrc, "enough-data",
@@ -481,7 +506,16 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					sprintf(str_parser, "audio_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
-					current->parser = gst_element_factory_make("aacparse", str_parser);
+
+					if (media_format_get_audio_info((media_format_h)(current->media_format), &mimetype, NULL, NULL, NULL, NULL) !=
+						MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+						if (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS)
+							current->parser = gst_element_factory_make("aacparse", str_parser);
+						else if (mimetype == MEDIA_FORMAT_AMR_NB)
+							current->parser = gst_element_factory_make("amrparse", str_parser);
+					} else {
+						MX_E("Can't retrive mimetype for the current track. Unsupported MIME Type. Proceeding to the next track\n");
+					}
 
 					if (!current->appsrc || !current->parser) {
 						MX_E("One element (audio_appsrc/aparse) could not be created. Exiting.\n");
@@ -495,7 +529,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent fucntions to each track */
-					MX_I("\nRegistering callback for cur->tr_ind = %d", current->track_index);
+					MX_I("\nRegistering audio callback for cur->tr_ind = %d\n",current->track_index);
 					g_signal_connect(current->appsrc, "need-data",
 						G_CALLBACK(_audio_start_feed), current);
 					g_signal_connect(current->appsrc, "enough-data",
@@ -521,10 +555,6 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 				}
 			}
 		}
-	} else {
-		MX_E("Unsupported format. Currently suports only MP4");
-		ret = MEDIAMUXER_ERROR_INVALID_PATH;
-		goto ERROR;
 	}
 
 	MX_I("Output_uri= %s\n", gst_handle->output_uri);
@@ -683,13 +713,13 @@ int __gst_codec_specific_caps(GstCaps *new_cap,
 		break;
 	case MEDIA_FORMAT_ULAW:
 		break;
-	case MEDIA_FORMAT_AMR:
+	case MEDIA_FORMAT_AMR_NB:
 		break;
 	case MEDIA_FORMAT_AMR_WB:
 		break;
 	case MEDIA_FORMAT_G729:
 		break;
-	case MEDIA_FORMAT_AAC:
+	case MEDIA_FORMAT_AAC_LC:
 		g_value_init(&val, G_TYPE_INT);
 		g_value_set_int(&val, 4);
 		gst_caps_set_value(new_cap, "mpegversion", &val);

@@ -80,6 +80,7 @@ typedef enum {
  */
 typedef enum {
 	MEDIAMUXER_CONTAINER_FORMAT_MP4 = MEDIA_FORMAT_CONTAINER_MP4,       /**< The mediamuxer output format is MP4 container */
+	MEDIAMUXER_CONTAINER_FORMAT_3GP = MEDIA_FORMAT_CONTAINER_3GP       /**< The mediamuxer output format is 3GP container */
 } mediamuxer_output_format_e;
 
 /**
