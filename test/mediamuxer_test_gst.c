@@ -117,6 +117,17 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 					g_print("media_format_set_audio_mime failed\n");
 					return;
 				}
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/x-wav")) { g_print("creating audio-wav\n");
+				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_PCM)) {
+					g_print("media_format_set_audio_mime failed\n");
+					return;
+				}
+				if (media_format_set_audio_bit(audfmt, 16))
+					g_print("wav media_format_set_audio_bit failed");
+				if (media_format_set_audio_channel(audfmt, 2))
+					g_print("wav media_format_set_audio_channel failed");
+				if (media_format_set_audio_samplerate(audfmt, 44100))
+					g_print("wav media_format_set_audio_samplerate failed");
 			}
 
 			if (media_packet_create(audfmt, NULL, NULL, &aud_pkt)) {
@@ -143,6 +154,12 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
+			if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3) == 0) {
+				aud_caps = "audio/x-raw, format=(string)S16LE, layout=(string)interleaved, channels=(int)2, channel-mask=(bitmask)0x0000000000000003, rate=(int)44100";
+				/* no need to set the rest of the parameters for wav */
+				goto SET_CAPS;
+			}
+
 			if (media_packet_set_pts(aud_pkt, buffer->pts)) {
 				g_print("unable to set the pts\n");
 				return;
@@ -163,8 +180,9 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
+SET_CAPS:
 			if (media_packet_set_extra(aud_pkt, aud_caps)) {
-				g_print("unable to set the audio codec data e\n");
+				g_print("unable to set the audio codec data \n");
 				return;
 			}
 
@@ -415,6 +433,79 @@ static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
 		break;
 	}
 	return TRUE;
+}
+
+
+/* Demux wav file and generate raw data */
+int demux_wav()
+{
+	CustomData data;
+	GMainLoop *loop_dmx;
+	GstBus *bus;
+	guint watch_id_for_bus;
+
+	g_print("Start of _demux_wav()\n");
+
+	if (access(file_mp4, F_OK) == -1) {
+		/* wav file doesn't exist */
+		g_print("Invalid wav file path.");
+		return -1;
+	}
+
+	gst_init(NULL, NULL);
+	loop_dmx = g_main_loop_new(NULL, FALSE);
+	data.loop = loop_dmx;
+	new_pad_type_aud = "audio/x-wav"; /* Update to aid cb. */
+	/* Create gstreamer elements for demuxer*/
+	data.pipeline = gst_pipeline_new("DemuxerPipeline");
+	data.source = gst_element_factory_make("filesrc", "file-source");
+	data.demuxer = gst_element_factory_make("wavparse", "wavparse");
+	data.audioqueue = gst_element_factory_make("queue", "audio-queue");
+	data.audio_appsink = gst_element_factory_make("appsink", "encoded_audio_appsink");
+
+	if (!data.pipeline || !data.source || !data.demuxer || !data.audioqueue || !data.audio_appsink) {
+		g_print("Test-Suite: One gst-element can't be created. Exiting\n");
+		return -1;
+	}
+
+	/* Add msg-handler */
+	bus = gst_pipeline_get_bus(GST_PIPELINE(data.pipeline));
+	watch_id_for_bus = gst_bus_add_watch(bus, __bus_call, loop_dmx);
+	gst_object_unref(bus);
+
+	/* Add gstreamer-elements into gst-pipeline */
+	gst_bin_add_many(GST_BIN(data.pipeline), data.source, data.demuxer, data.audioqueue, data.audio_appsink, NULL);
+
+	/* we set the input filename to the source element */
+	g_object_set(G_OBJECT(data.source), "location", file_mp4, NULL);
+
+	/* we link the elements together */
+	if (!gst_element_link_many(data.source, data.demuxer, data.audioqueue, data.audio_appsink, NULL)) {
+		g_print("Demuxer pipeline link failed");
+		return -1;
+	}
+
+	g_object_set(data.audio_appsink, "emit-signals", TRUE, NULL);
+	g_signal_connect(data.audio_appsink, "new-sample", G_CALLBACK(__audio_app_sink_callback), &data);
+	g_signal_connect(data.audio_appsink, "eos", G_CALLBACK(__audio_app_sink_eos_callback), &data);
+
+	/* No demuxer callback for wav, playing the pipeline*/
+	g_print("Now playing: %s\n", file_mp4);
+	gst_element_set_state(data.pipeline, GST_STATE_PLAYING);
+
+	/* Run the loop till quit */
+	g_print("gst-wav-pipeline - Running...\n");
+	g_main_loop_run(loop_dmx);
+
+	/* Done with gst-loop. Free resources */
+	gst_element_set_state(data.pipeline, GST_STATE_NULL);
+
+	g_print("gst-wav-pipeline - Unreferencing...\n");
+	gst_object_unref(GST_OBJECT(data.pipeline));
+	g_source_remove(watch_id_for_bus);
+	g_main_loop_unref(loop_dmx);
+	g_print("End of demux_wav()\n");
+	return 0;
 }
 
 /* Demux an mp4 file and generate encoded streams and extra data  */
