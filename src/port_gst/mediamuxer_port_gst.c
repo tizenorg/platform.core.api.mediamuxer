@@ -192,7 +192,9 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 				&& (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS))
 			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP
 				&& (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS
-				|| mimetype == MEDIA_FORMAT_AMR_NB))) {
+				|| mimetype == MEDIA_FORMAT_AMR_NB))
+			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV
+				&& (mimetype == MEDIA_FORMAT_PCM))) {
 
 			current->track_index = 1 + NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.audio_track_cnt);
 			(mx_handle_gst->track_info.audio_track_cnt)++;
@@ -414,8 +416,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	gst_handle->sink = gst_element_factory_make("filesink", "muxer filesink");
 
 	if (gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_MP4
-		&& gst_handle->muxed_format !=MEDIAMUXER_CONTAINER_FORMAT_3GP) {
-		MX_E("Unsupported format. Currently supports only MP4 & 3GP");
+		&& gst_handle->muxed_format !=MEDIAMUXER_CONTAINER_FORMAT_3GP
+		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_WAV) {
+		MX_E("Unsupported format. Currently supports only MP4, 3GP & WAV");
 		ret = MEDIAMUXER_ERROR_INVALID_PATH;
 		goto ERROR;
 	} else {
@@ -426,6 +429,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			gst_handle->muxer = gst_element_factory_make("3gppmux", "3gppmux");
 			/* gst_handle->muxer = gst_element_factory_make("avmux_3gp", "avmux_3gp");*/
 			/* gst_handle->muxer = gst_element_factory_make("qtmux", "qtmux"); */
+		else if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV)
+			gst_handle->muxer = gst_element_factory_make("wavenc", "wavenc");
 
 		if ((!gst_handle->pipeline) || (!gst_handle->muxer) || (!gst_handle->sink)) {
 			MX_E("One element could not be created. Exiting.\n");
@@ -513,17 +518,27 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 							current->parser = gst_element_factory_make("aacparse", str_parser);
 						else if (mimetype == MEDIA_FORMAT_AMR_NB)
 							current->parser = gst_element_factory_make("amrparse", str_parser);
+						else if (mimetype == MEDIA_FORMAT_PCM)
+							MX_I("Do Nothing, as there is no need of parser for wav\n");
 					} else {
 						MX_E("Can't retrive mimetype for the current track. Unsupported MIME Type. Proceeding to the next track\n");
 					}
 
-					if (!current->appsrc || !current->parser) {
-						MX_E("One element (audio_appsrc/aparse) could not be created. Exiting.\n");
+					if (!current->appsrc) {
+						MX_E("One element (audio_appsrc) could not be created. Exiting.\n");
 						ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
 						goto ERROR;
 					}
 
-					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, current->parser, NULL);
+					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, NULL);
+					if (mimetype != MEDIA_FORMAT_PCM) {
+						if (!current->parser) {
+							MX_E("One element (audio-parser) could not be created. Exiting.\n");
+							ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
+							goto ERROR;
+						}
+						gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->parser, NULL);
+					}
 					/* Set video caps for corresponding src elements */
 					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
 
@@ -539,19 +554,22 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
 						GST_APP_STREAM_TYPE_STREAM);
 #endif
+					if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV) {	/* wavenc is muxer */
+						gst_element_link(current->appsrc, gst_handle->muxer);
+					} else {
+						gst_element_link(current->appsrc, current->parser);
+						/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
+						sprintf(track_no,"audio_%.2d",aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
 
-					gst_element_link(current->appsrc, current->parser);
-					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-					sprintf(track_no, "audio_%.2d", aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
+						audio_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
+						aud_src = gst_element_get_static_pad(current->parser, "src");
 
-					audio_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
-					aud_src = gst_element_get_static_pad(current->parser, "src");
+						if (gst_pad_link(aud_src, audio_pad) != GST_PAD_LINK_OK)
+							MX_E("audio parser to muxer link failed");
 
-					if (gst_pad_link(aud_src, audio_pad) != GST_PAD_LINK_OK)
-						MX_E("audio parser to muxer link failed");
-
-					gst_object_unref(GST_OBJECT(aud_src));
-					gst_object_unref(GST_OBJECT(audio_pad));
+						gst_object_unref(GST_OBJECT(aud_src));
+						gst_object_unref(GST_OBJECT(audio_pad));
+					}
 				}
 			}
 		}
@@ -1124,8 +1142,10 @@ static int gst_muxer_close_track(MMHandleType pHandle, int track_index)
 		if (current->track_index == track_index)
 			break;
 
-	if (!current || current->track_index != track_index)
+	if (!current || current->track_index != track_index) {
+		(!current)?MX_E("Current is Null"):MX_E("Mismatched between track index[%d]\n", track_index);
 		goto ERROR;
+	}
 
 	MX_I("__gst_muxer_stop setting eos to sources:%p\n", gst_handle);
 	if (gst_handle->pipeline != NULL) {
