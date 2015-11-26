@@ -84,7 +84,8 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 	}
 
 	if (format != MEDIAMUXER_CONTAINER_FORMAT_MP4
-		&& format != MEDIAMUXER_CONTAINER_FORMAT_3GP) {
+		&& format != MEDIAMUXER_CONTAINER_FORMAT_3GP
+		&& format != MEDIAMUXER_CONTAINER_FORMAT_WAV) {
 		MX_E("Unsupported Container format: %d \n", format);
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
 	}

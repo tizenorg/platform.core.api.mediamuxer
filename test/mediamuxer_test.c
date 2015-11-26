@@ -94,6 +94,7 @@ int track_index_aud;
 int track_index_aud2;
 
 int demux_mp4();
+int demux_wav();
 void mediacodec_process_all(void);
 void input_raw_filepath(char *filename);
 void mediacodec_config_set_codec(int codecid, int flag);
@@ -138,11 +139,13 @@ int test_mediamuxer_set_data_sink()
 	} else if (strncmp(data_sink, "3", 1) == 0 || strncmp(data_sink, "4", 1) == 0) {
 		op_uri = "MuxTest.3gp";
 		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_3GP);
+	} else if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3) == 0) {
+		op_uri = "MuxTest.wav";
+		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_WAV);
 	}
 
-	if (ret != MEDIAMUXER_ERROR_NONE) {
+	if (ret != MEDIAMUXER_ERROR_NONE)
 		g_print("mediamuxer_set_data_sink is failed\n");
-	}
 	return ret;
 }
 
@@ -170,6 +173,9 @@ int test_mediamuxer_add_track_video()
 	} else if (strncmp(data_sink, "4", 1) == 0) {
 		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink, "5", 1) == 0) {
+		g_print("Add video track is invalid for wav\n");
+		return 1;
 	}
 
 	if (validate_with_codec) {
@@ -216,7 +222,11 @@ int test_mediamuxer_add_track_audio()
 	} else if (strncmp(data_sink, "4", 1) == 0) {
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation\n");
+	} else if (strncmp(data_sink, "5", 1) == 0) {
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_PCM) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation\n");
 	}
+
 
 	if (validate_with_codec) {
 		if (media_format_set_audio_channel(media_format_a, channel) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
@@ -271,6 +281,8 @@ int test_mediamuxer_write_sample()
 	if (validate_with_codec) {
 		/* Test muxer with codec */
 		mediacodec_process_all();
+	} else if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3)) {
+		demux_wav();
 	} else {
 		demux_mp4();
 	}
@@ -445,7 +457,7 @@ static void displaymenu(void)
 		}
 	} else if (g_menu_state == CURRENT_STATUS_DATA_SINK) {
 		g_print("*** input the datasink container format:\n");
-		g_print("(1) mp4 \n(2) 3gp (h264 + AAC) \n(3) 3gp (h263 + AAC) \n(4) 3gp (h263 + AMR) \n");
+		g_print("(1) mp4 \n(2) 3gp (h264 + AAC) \n(3) 3gp (h263 + AAC) \n(4) 3gp (h263 + AMR) \n(5) wav\n");
 	} else if (g_menu_state == CURRENT_STATUS_RAW_VIDEO_FILENAME) {
 		g_print("*** input raw video file name");
 	} else if (g_menu_state == CURRENT_STATUS_SET_VENC_INFO) {
