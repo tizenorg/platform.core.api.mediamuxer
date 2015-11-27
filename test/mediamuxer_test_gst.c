@@ -45,7 +45,7 @@ extern mediamuxer_h myMuxer;
 extern bool validate_multitrack;
 extern char media_file[2048];
 extern char data_sink[2048];
-extern char file_mp4[2048];
+extern char media_file[2048];
 extern bool have_aud_track;
 extern bool have_vid_track;
 const gchar *new_pad_type_aud = NULL; /* demuxer pad type for audio */
@@ -110,9 +110,14 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 					g_print("media_format_set_audio_mime failed\n");
 					return;
 				}
-			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR")
-				|| g_str_has_prefix(new_pad_type_aud, "audio/x-amr-wb-sh")
-				|| g_str_has_prefix(new_pad_type_aud, "audio/x-amr-nb-sh")) {
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR-WB")) {
+				g_print("For amr-wb, setting encoded media type as MEDIA_FORMAT_AMR_WB\n");
+				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AMR_WB)) {
+					g_print("media_format_set_audio_mime failed\n");
+					return;
+				}
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR")) {
+				g_print("For amr-nb, setting encoded media type as MEDIA_FORMAT_AMR_NB\n");
 				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AMR_NB)) {
 					g_print("media_format_set_audio_mime failed\n");
 					return;
@@ -157,6 +162,14 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 			if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3) == 0) {
 				aud_caps = "audio/x-raw, format=(string)S16LE, layout=(string)interleaved, channels=(int)2, channel-mask=(bitmask)0x0000000000000003, rate=(int)44100";
 				/* no need to set the rest of the parameters for wav */
+				goto SET_CAPS;
+			} else if (strncmp(data_sink,"6",1) == 0 || strncmp(data_sink,"amr-nb",6) == 0) {
+				/* ToDo: Query caps from amrparse src pad */
+				aud_caps = "audio/AMR, channels=1, rate=8000";
+				goto SET_CAPS;
+			} else if (strncmp(data_sink,"7",1) == 0 || strncmp(data_sink,"amr-wb",6) == 0) {
+				/* ToDo: Query caps from amrparse src pad */
+				aud_caps = "audio/AMR-WB, channels=1, rate=16000";
 				goto SET_CAPS;
 			}
 
@@ -313,12 +326,13 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 }
 
 /* demuxer audio appsink eos callback */
-static void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
+void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
 {
+	g_print("__audio_app_sink_eos_callback, closing track_index = %d\n", track_index_aud);
 	mediamuxer_close_track(myMuxer, track_index_aud);
 	if (validate_multitrack)
 		mediamuxer_close_track(myMuxer, track_index_aud2);
-	g_print("Encoded Audio EOS cb reached \n");
+	g_print("audio EOS cb reached \n");
 	aud_eos = 1;
 	if (!have_vid_track || vid_eos == 1)
 		g_main_loop_quit(data->loop);
@@ -436,19 +450,19 @@ static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
 }
 
 
-/* Demux wav file and generate raw data */
-int demux_wav()
+/* Demux audio (wav/amr) file and generate raw data */
+int demux_audio()
 {
 	CustomData data;
 	GMainLoop *loop_dmx;
 	GstBus *bus;
 	guint watch_id_for_bus;
 
-	g_print("Start of _demux_wav()\n");
+	g_print("Start of _demux_audio()\n");
 
-	if (access(file_mp4, F_OK) == -1) {
-		/* wav file doesn't exist */
-		g_print("Invalid wav file path.");
+	if (access(media_file, F_OK) == -1) {
+		/* wav/amr file doesn't exist */
+		g_print("wav/amr Invalid file path.");
 		return -1;
 	}
 
@@ -456,10 +470,19 @@ int demux_wav()
 	loop_dmx = g_main_loop_new(NULL, FALSE);
 	data.loop = loop_dmx;
 	new_pad_type_aud = "audio/x-wav"; /* Update to aid cb. */
-	/* Create gstreamer elements for demuxer*/
+	/* Create gstreamer elements for demuxer */
 	data.pipeline = gst_pipeline_new("DemuxerPipeline");
 	data.source = gst_element_factory_make("filesrc", "file-source");
-	data.demuxer = gst_element_factory_make("wavparse", "wavparse");
+	if (strncmp(data_sink,"5",1) == 0 || strncmp(data_sink,"wav",3) == 0) {
+		data.demuxer = gst_element_factory_make("wavparse", "wavparse");
+		new_pad_type_aud = "audio/x-wav";	/* Update to aid cb */
+	} else if (strncmp(data_sink,"6",1) == 0) {
+		data.demuxer = gst_element_factory_make("amrparse", "amrparse");
+		new_pad_type_aud = "audio/AMR";	/* Update to aid cb */
+	} else if (strncmp(data_sink,"7",1) == 0 || strncmp(data_sink,"amr-wb",6) == 0) {
+		data.demuxer = gst_element_factory_make("amrparse", "amrparse");
+		new_pad_type_aud = "audio/AMR-WB";	/* Update to aid cb */
+	}
 	data.audioqueue = gst_element_factory_make("queue", "audio-queue");
 	data.audio_appsink = gst_element_factory_make("appsink", "encoded_audio_appsink");
 
@@ -477,7 +500,7 @@ int demux_wav()
 	gst_bin_add_many(GST_BIN(data.pipeline), data.source, data.demuxer, data.audioqueue, data.audio_appsink, NULL);
 
 	/* we set the input filename to the source element */
-	g_object_set(G_OBJECT(data.source), "location", file_mp4, NULL);
+	g_object_set(G_OBJECT(data.source), "location", media_file, NULL);
 
 	/* we link the elements together */
 	if (!gst_element_link_many(data.source, data.demuxer, data.audioqueue, data.audio_appsink, NULL)) {
@@ -489,12 +512,12 @@ int demux_wav()
 	g_signal_connect(data.audio_appsink, "new-sample", G_CALLBACK(__audio_app_sink_callback), &data);
 	g_signal_connect(data.audio_appsink, "eos", G_CALLBACK(__audio_app_sink_eos_callback), &data);
 
-	/* No demuxer callback for wav, playing the pipeline*/
-	g_print("Now playing: %s\n", file_mp4);
+	/* No demuxer callback for wav, playing the pipeline */
+	g_print("Now playing: %s\n", media_file);
 	gst_element_set_state(data.pipeline, GST_STATE_PLAYING);
 
 	/* Run the loop till quit */
-	g_print("gst-wav-pipeline - Running...\n");
+	g_print("gst-wav/amr-pipeline -Running...\n");
 	g_main_loop_run(loop_dmx);
 
 	/* Done with gst-loop. Free resources */
@@ -504,7 +527,7 @@ int demux_wav()
 	gst_object_unref(GST_OBJECT(data.pipeline));
 	g_source_remove(watch_id_for_bus);
 	g_main_loop_unref(loop_dmx);
-	g_print("End of demux_wav()\n");
+	g_print("End of demux_audio()\n");
 	return 0;
 }
 
@@ -518,7 +541,7 @@ int demux_mp4()
 
 	g_print("Start of _demux_mp4()\n");
 
-	if (access(file_mp4, F_OK) == -1) {
+	if (access(media_file, F_OK) == -1) {
 		/* mp4 file doesn't exist */
 		g_print("mp4 Invalid file path.");
 		return -1;
@@ -555,7 +578,7 @@ int demux_mp4()
 		data.audioqueue, data.videoqueue, data.audio_appsink, data.video_appsink, NULL);
 
 	/* we set the input filename to the source element */
-	g_object_set(G_OBJECT(data.source), "location", file_mp4, NULL);
+	g_object_set(G_OBJECT(data.source), "location", media_file, NULL);
 
 	/* we link the elements together */
 	gst_element_link(data.source, data.demuxer);
@@ -564,7 +587,7 @@ int demux_mp4()
 	g_signal_connect(data.demuxer, "pad-added", G_CALLBACK(__on_pad_added), &data);
 
 	/* Play the pipeline */
-	g_print("Now playing : %s\n", file_mp4);
+	g_print("Now playing : %s\n", media_file);
 	gst_element_set_state(data.pipeline, GST_STATE_PLAYING);
 
 	/* Run the loop till quit */
