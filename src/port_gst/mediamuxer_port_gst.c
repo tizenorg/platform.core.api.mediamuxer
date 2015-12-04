@@ -448,8 +448,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
 				if (current->track_index%NO_OF_TRACK_TYPES == 0) { /* Video track */
 
-					sprintf(str_appsrc, "video_appsrc%d", current->track_index);
-					sprintf(str_parser, "video_parser%d", current->track_index);
+					snprintf(str_appsrc, MAX_STRING_LENGTH - 1, "video_appsrc%d", current->track_index);
+					snprintf(str_parser, MAX_STRING_LENGTH - 1, "video_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 

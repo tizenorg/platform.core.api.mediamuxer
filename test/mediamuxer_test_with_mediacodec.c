@@ -486,7 +486,7 @@ int __mediacodec_process_input(void)
 		if (bMultipleFiles) {
 			if (g_uri[g_len-1] != '/')
 				g_uri[g_len++] = '/';
-			sprintf(g_uri+g_len, "%05d", frame_count);
+			snprintf(g_uri+g_len, MAX_STRING_LEN - g_len, "%05d", frame_count);
 		}
 		fp_src = fopen(g_uri, "r");
 		if (fp_src == NULL) {

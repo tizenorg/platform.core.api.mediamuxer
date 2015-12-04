@@ -35,9 +35,9 @@
 		if (str &&  \
 			(strlen(str) > 0) && \
 			(strlen(str) < MEDIAMUXER_INI_MAX_STRLEN)) { \
-			strcpy(x_item, str); \
+			strncpy(x_item, str, MEDIAMUXER_INI_MAX_STRLEN - 1); \
 		} else { \
-			strcpy(x_item, x_default); \
+			strncpy(x_item, x_default, MEDIAMUXER_INI_MAX_STRLEN - 1); \
 		} \
 	} while (0)
 
@@ -63,7 +63,7 @@ do { \
 	char *usr_ptr = NULL; \
 	char *token = NULL; \
 	gchar temp_arr[MEDIAMUXER_INI_MAX_STRLEN] = {0}; \
-	MMMEDIAMUXER_INI_GET_STRING(x_dict, temp_arr, x_ini, x_default); \
+	MEDIAMUXER_INI_GET_STRING(x_dict, temp_arr, x_ini, x_default); \
 	token = strtok_r(temp_arr, delimiters, &usr_ptr); \
 	while (token) { \
 		index = atoi(token); \
@@ -86,7 +86,7 @@ do { \
 	char *usr_ptr = NULL; \
 	char *token = NULL; \
 	gchar temp_arr[MEDIAMUXER_INI_MAX_STRLEN] = {0}; \
-	MMMEDIAMUXER_INI_GET_STRING(x_dict, temp_arr, x_ini, x_default); \
+	MEDIAMUXER_INI_GET_STRING(x_dict, temp_arr, x_ini, x_default); \
 	token = strtok_r(temp_arr, delimiters, &usr_ptr); \
 	while (token) { \
 		if (index > x_list_max -1) { \

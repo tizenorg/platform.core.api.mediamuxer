@@ -43,6 +43,7 @@
 #define DEFAULT_OUT_BUF_WIDTH 640
 #define DEFAULT_OUT_BUF_HEIGHT 480
 #define OUTBUF_SIZE (DEFAULT_OUT_BUF_WIDTH * DEFAULT_OUT_BUF_HEIGHT * 3 / 2)
+#define MAX_INPUT_SIZE 2048
 
 #define DEFAULT_SAMPPLERATE 44100
 #define DEFAULT_CHANNEL	    2
@@ -84,8 +85,8 @@ static int bitrate = DEFAULT_BITRATE;
 int iseos_codec = 0;
 bool validate_with_codec = false;
 bool validate_multitrack = false;
-char file_mp4[2048];
-char data_sink[2048];
+char file_mp4[MAX_INPUT_SIZE];
+char data_sink[MAX_INPUT_SIZE];
 bool have_mp4 = false;
 bool have_vid_track = false;
 bool have_aud_track = false;
@@ -152,10 +153,10 @@ int test_mediamuxer_set_data_sink()
 int test_mediamuxer_add_track_video()
 {
 	media_format_mimetype_e mimetype;
-	int width;
-	int height;
-	int avg_bps;
-	int max_bps;
+	int width = 0;
+	int height = 0;
+	int avg_bps = 0;
+	int max_bps = 0;
 
 	g_print("test_mediamuxer_add_track_video\n");
 	media_format_create(&media_format);
@@ -203,10 +204,10 @@ int test_mediamuxer_add_track_video()
 int test_mediamuxer_add_track_audio()
 {
 	media_format_mimetype_e mimetype;
-	int channel;
-	int samplerate;
-	int bit;
-	int avg_bps;
+	int channel = 0;
+	int samplerate = 0;
+	int bit = 0;
+	int avg_bps = 0;
 
 	g_print("test_mediamuxer_add_track_audio\n");
 	media_format_create(&media_format_a);
@@ -489,12 +490,12 @@ static void interpret(char *cmd)
 		}
 	case CURRENT_STATUS_MP4_FILENAME: {
 			input_filepath(cmd);
-			strcpy(file_mp4, cmd);
+			strncpy(file_mp4, cmd, MAX_INPUT_SIZE - 1);
 			g_menu_state = CURRENT_STATUS_MAINMENU;
 			break;
 		}
 	case CURRENT_STATUS_DATA_SINK: {
-			strcpy(data_sink, cmd);
+			strncpy(data_sink, cmd, MAX_INPUT_SIZE - 1);
 			test_mediamuxer_set_data_sink();
 			g_menu_state = CURRENT_STATUS_MAINMENU;
 			break;
