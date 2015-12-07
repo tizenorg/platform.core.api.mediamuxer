@@ -489,7 +489,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_element_link(current->appsrc, current->parser);
 
 					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-					sprintf(track_no, "video_%.2d", vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
+					snprintf(track_no, MAX_STRING_LENGTH, "video_%.2d", vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
 
 					video_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
 					vid_src = gst_element_get_static_pad(current->parser, "src");
@@ -507,8 +507,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
 				if (current->track_index%NO_OF_TRACK_TYPES == 1) {
 
-					sprintf(str_appsrc, "audio_appsrc%d", current->track_index);
-					sprintf(str_parser, "audio_parser%d", current->track_index);
+					snprintf(str_appsrc, MAX_STRING_LENGTH, "audio_appsrc%d", current->track_index);
+					snprintf(str_parser, MAX_STRING_LENGTH, "audio_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 
@@ -559,7 +559,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					} else {
 						gst_element_link(current->appsrc, current->parser);
 						/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-						sprintf(track_no, "audio_%.2d", aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
+						snprintf(track_no, MAX_STRING_LENGTH, "audio_%.2d", aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
 
 						audio_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
 						aud_src = gst_element_get_static_pad(current->parser, "src");
@@ -1004,7 +1004,7 @@ static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
 		MX_E("unable to get the buffer pointer \
 				from media_packet_get_buffer_data_ptr\n");
 		ret = MX_ERROR_UNKNOWN;
-		goto ERROR;
+		goto ERROR2;
 	}
 	/* if (!gst_buffer_map (buffer, &map, GST_MAP_READ)) {
 		MX_E("gst_buffer_map failed\n");
@@ -1045,6 +1045,14 @@ static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
 	}
 	GST_BUFFER_FLAG_SET(buffer, flags);
 ERROR:
+	MEDIAMUXER_FLEAVE();
+	return ret;
+
+ERROR2:
+	if (data_ptr) {
+		g_free(data_ptr);
+		data_ptr = NULL;
+	}
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }

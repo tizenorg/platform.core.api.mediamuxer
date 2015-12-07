@@ -514,7 +514,7 @@ int __mediacodec_process_input(void)
 				if (bMultipleFiles) {
 					buf_size = __extract_input_per_frame(fp_src, data);
 					fclose(fp_src);
-					sprintf(g_uri+g_len, "%05d", frame_count+1);
+					snprintf(g_uri+g_len, MAX_STRING_LEN - g_len, "%05d", frame_count+1);
 					fp_src = fopen(g_uri, "r");
 					if (fp_src == NULL) {
 						media_packet_set_flags(in_buf, MEDIA_PACKET_END_OF_STREAM);
