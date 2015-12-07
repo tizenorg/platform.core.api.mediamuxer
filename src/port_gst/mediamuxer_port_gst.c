@@ -194,7 +194,11 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 				&& (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS
 				|| mimetype == MEDIA_FORMAT_AMR_NB))
 			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV
-				&& (mimetype == MEDIA_FORMAT_PCM))) {
+				&& (mimetype == MEDIA_FORMAT_PCM))
+			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
+				&& (mimetype == MEDIA_FORMAT_AMR_NB))
+			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_WB
+				&& (mimetype == MEDIA_FORMAT_AMR_WB))) {
 
 			current->track_index = 1 + NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.audio_track_cnt);
 			(mx_handle_gst->track_info.audio_track_cnt)++;
@@ -417,8 +421,10 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 	if (gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_MP4
 		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_3GP
-		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_WAV) {
-		MX_E("Unsupported format. Currently supports only MP4, 3GP & WAV");
+		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_WAV
+		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
+		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_AMR_WB) {
+		MX_E("Unsupported container-format. Currently suports only MP4, 3GP, WAV & AMR");
 		ret = MEDIAMUXER_ERROR_INVALID_PATH;
 		goto ERROR;
 	} else {
@@ -431,6 +437,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			/* gst_handle->muxer = gst_element_factory_make("qtmux", "qtmux"); */
 		else if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV)
 			gst_handle->muxer = gst_element_factory_make("wavenc", "wavenc");
+		else if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
+			|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_WB)
+			gst_handle->muxer = gst_element_factory_make("avmux_amr", "avmux_amr");
 
 		if ((!gst_handle->pipeline) || (!gst_handle->muxer) || (!gst_handle->sink)) {
 			MX_E("One element could not be created. Exiting.\n");
@@ -516,7 +525,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 						MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
 						if (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS)
 							current->parser = gst_element_factory_make("aacparse", str_parser);
-						else if (mimetype == MEDIA_FORMAT_AMR_NB)
+						else if (mimetype == MEDIA_FORMAT_AMR_NB || mimetype == MEDIA_FORMAT_AMR_WB)
 							current->parser = gst_element_factory_make("amrparse", str_parser);
 						else if (mimetype == MEDIA_FORMAT_PCM)
 							MX_I("Do Nothing, as there is no need of parser for wav\n");
@@ -554,7 +563,10 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
 						GST_APP_STREAM_TYPE_STREAM);
 #endif
-					if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV) {	/* wavenc is muxer */
+					/* For wav, wavenc is muxer */
+					if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV
+						|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
+						|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_WB) {
 						gst_element_link(current->appsrc, gst_handle->muxer);
 					} else {
 						gst_element_link(current->appsrc, current->parser);
@@ -1179,22 +1191,15 @@ static int gst_muxer_pause(MMHandleType pHandle)
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_CHECK_NULL(pHandle);
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
-	GstState state;
 
 	MX_I("gst_muxer_pause setting pipeline to pause");
-	gst_element_get_state(gst_handle->pipeline, &state, NULL, GST_CLOCK_TIME_NONE);
 
-	if (state == GST_STATE_PLAYING) {
-		if (gst_element_set_state(gst_handle->pipeline, GST_STATE_PAUSED)
-			== GST_STATE_CHANGE_FAILURE) {
-			MX_I("Setting pipeline to pause failed");
-			ret = MX_ERROR_INVALID_ARGUMENT;
-		}
-	} else {
-		MX_I("pipeline is not in playing, PAUSE is intended to pause a playing pipeline. \
-			exiting with out state change");
+	if (gst_element_set_state(gst_handle->pipeline, GST_STATE_PAUSED)
+		== GST_STATE_CHANGE_FAILURE) {
+		MX_I("Setting pipeline to pause failed");
 		ret = MX_ERROR_INVALID_ARGUMENT;
 	}
+
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
