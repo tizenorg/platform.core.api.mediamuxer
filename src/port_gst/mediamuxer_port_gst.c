@@ -306,7 +306,8 @@ static gint __gst_handle_library_error(mxgst_handle_t* gst_handle, int code)
 static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
 {
 	MEDIAMUXER_FENTER();
-	int ret  = MX_ERROR_NONE;
+	gboolean ret = TRUE;
+	int error_val  = MX_ERROR_NONE;
 	mxgst_handle_t *gst_handle = (mxgst_handle_t*)data;
 	switch (GST_MESSAGE_TYPE(msg)) {
 	case GST_MESSAGE_EOS:
@@ -317,20 +318,23 @@ static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
 			GError *error;
 			gst_message_parse_error(msg, &error, &debug);
 			if (!error) {
-				MX_E("GST error message parsing failed");
+				MX_E("GStreamer callback error message parsing failed\n");
+				ret = FALSE;
 				break;
 			}
-			MX_E("Error: %s\n", error->message);
+			MX_I("GStreamer callback Error: %s\n", error->message);
 			if (error) {
 				if (error->domain == GST_RESOURCE_ERROR)
-					ret = __gst_handle_resource_error(gst_handle, error->code);
+					error_val = __gst_handle_resource_error(gst_handle, error->code);
 				else if (error->domain == GST_LIBRARY_ERROR)
-					ret = __gst_handle_library_error(gst_handle, error->code);
+					error_val = __gst_handle_library_error(gst_handle, error->code);
 				else if (error->domain == GST_CORE_ERROR)
-					ret = __gst_handle_core_error(gst_handle, error->code);
+					error_val = __gst_handle_core_error(gst_handle, error->code);
 				else
-					MX_E("Unexpected error has occured");
-				/* ToDo: Update the user callback with ret... */
+					MX_I("Unknown GStreamer callback error\n");
+				/* Update the user callback with ret value */
+				((gst_error_cb)gst_handle->user_cb[_GST_EVENT_TYPE_ERROR])(error_val, (void*)error->message);
+
 				return ret;
 			}
 			g_free(debug);
@@ -339,11 +343,11 @@ static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
 		}
 		break;
 	default:
-		MX_E("unhandled message: 0x%x", GST_MESSAGE_TYPE(msg));
+		MX_I("unhandled gst callback message: 0x%x\n", GST_MESSAGE_TYPE(msg));
 		break;
 	}
 	MEDIAMUXER_FLEAVE();
-	return TRUE;
+	return ret;
 }
 
 /*
@@ -498,7 +502,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_element_link(current->appsrc, current->parser);
 
 					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-					sprintf(track_no, "video_%.2d", vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
+					snprintf(track_no, MAX_STRING_LENGTH - 1, "video_%.2d", vid_track_cnt++);  /* sprintf(track_no,"video_00"); */
 
 					video_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
 					vid_src = gst_element_get_static_pad(current->parser, "src");
@@ -516,8 +520,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
 				if (current->track_index%NO_OF_TRACK_TYPES == 1) {
 
-					sprintf(str_appsrc, "audio_appsrc%d", current->track_index);
-					sprintf(str_parser, "audio_parser%d", current->track_index);
+					snprintf(str_appsrc, MAX_STRING_LENGTH - 1, "audio_appsrc%d", current->track_index);
+					snprintf(str_parser, MAX_STRING_LENGTH - 1, "audio_parser%d", current->track_index);
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 
@@ -571,7 +575,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					} else {
 						gst_element_link(current->appsrc, current->parser);
 						/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
-						sprintf(track_no, "audio_%.2d", aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
+						snprintf(track_no, MAX_STRING_LENGTH - 1, "audio_%.2d", aud_track_cnt++);  /* sprintf(track_no,"audio_00"); */
 
 						audio_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
 						aud_src = gst_element_get_static_pad(current->parser, "src");

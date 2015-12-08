@@ -505,7 +505,7 @@ int __mediacodec_process_input(void)
 		media_packet_get_buffer_data_ptr(in_buf, &data);
 		if (data == NULL)
 			return MEDIACODEC_ERROR_INVALID_PARAMETER;
-		printf("use_encoder=%d\n", use_encoder);
+		g_print("use_encoder=%d\n", use_encoder);
 
 		if (use_encoder) {
 			if (use_video) {
@@ -514,7 +514,7 @@ int __mediacodec_process_input(void)
 				if (bMultipleFiles) {
 					buf_size = __extract_input_per_frame(fp_src, data);
 					fclose(fp_src);
-					sprintf(g_uri+g_len, "%05d", frame_count+1);
+					snprintf(g_uri+g_len, MAX_STRING_LEN-g_len, "%05d", frame_count+1);
 					fp_src = fopen(g_uri, "r");
 					if (fp_src == NULL) {
 						media_packet_set_flags(in_buf, MEDIA_PACKET_END_OF_STREAM);
@@ -534,7 +534,7 @@ int __mediacodec_process_input(void)
 			} else {
 				/* Audio Encoder - AAC */
 				buf_size = __extract_input_aacenc(fp_src, data);
-				printf("audio buf_size=%d\n", buf_size);
+				g_print("audio buf_size=%d\n", buf_size);
 				/* pts is not needed for muxer, if adts header is present */
 				/* media_packet_set_pts (in_buf, pts); */
 				g_print("----pts calculation: input pts = %"PRIu64", buf_size=%d samplerate=%d, samplebyte=%d\n", pts, buf_size, samplerate, samplebyte);
@@ -556,10 +556,6 @@ int __mediacodec_process_input(void)
 			g_print("%s - input_buf size = %4d  (0x%x) at %4d frame, %p\n", __func__, buf_size, buf_size, frame_count, in_buf);
 
 			ret = mediacodec_process_input(g_media_codec[0], in_buf, 0);
-			if (use_video && buf_size == -1) {
-				g_print("%s - END : input_buf size = %d  frame_count : %d\n", __func__, buf_size, frame_count);
-				return MEDIACODEC_ERROR_INVALID_INBUFFER;
-			}
 		} else {
 			g_print("%s - [WARN] Check to input buf_size = %4d  at %4d frame, %p\n", __func__, buf_size, frame_count, in_buf);
 			return MEDIACODEC_ERROR_INVALID_INBUFFER;
