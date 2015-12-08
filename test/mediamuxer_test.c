@@ -213,10 +213,7 @@ int test_mediamuxer_add_track_video()
 int test_mediamuxer_add_track_audio()
 {
 	media_format_mimetype_e mimetype;
-	int channel = 0;
-	int samplerate = 0;
-	int bit = 0;
-	int avg_bps = 0;
+	int avg_bps = 128000;
 
 	g_print("test_mediamuxer_add_track_audio\n");
 	media_format_create(&media_format_a);
@@ -224,7 +221,7 @@ int test_mediamuxer_add_track_audio()
 	if (strncmp(data_sink, "1", 1) == 0 || strncmp(data_sink, "mp4", 3) == 0) {
 		/* MEDIA_FORMAT_AAC_LC  MEDIA_FORMAT_AAC_HE  MEDIA_FORMAT_AAC_HE_PS */
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
-			g_print("Problem during media_format_set_audio_mime operation\n");
+			g_print("Problem during media_format_set_audio_mime operation, for AAC in MP4\n");
 	} else if (strncmp(data_sink, "2", 1) == 0 || strncmp(data_sink, "3gp", 3) == 0
 			|| strncmp(data_sink, "3", 1) == 0) {
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
@@ -356,7 +353,7 @@ int test_mediamuxer_destroy()
 
 void app_err_cb(mediamuxer_error_e error, void *user_data)
 {
-	printf("Got Error %d from mediamuxer\n", error);
+	g_print("Got Error %d: %s from mediamuxer\n", error, (char *)user_data);
 }
 
 int test_mediamuxer_set_error_cb()
