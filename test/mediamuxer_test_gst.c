@@ -240,14 +240,23 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 
 			if (g_str_has_prefix(new_pad_type_vid, "video/x-h264")) {
 				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H264_SP)) {
-					g_print("media_format_set_vidio_mime failed\n");
+					g_print("media_format_set_video_mime to H264_SP failed\n");
+					return;
+				}
+			} else if (g_str_has_prefix(new_pad_type_vid, "video/mpeg")) {
+				g_print("For mpeg4, setting encoded media type as MEDIA_FORMAT_MPEG4_SP\n");
+				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_MPEG4_SP)) {
+					g_print("media_format_set_video_mime to MPEG4_SP failed\n");
 					return;
 				}
 			} else if (g_str_has_prefix(new_pad_type_vid, "video/x-h263")) {
+				g_print("For h263, setting encoded media type as MEDIA_FORMAT_H263\n");
 				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H263)) {
 					g_print("media_format_set_vidio_mime failed\n");
 					return;
 				}
+			} else {
+				g_print("Unsupported encoded video mime. Currently muxer supports:h263, h264 & mpeg4");
 			}
 
 			if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
@@ -388,7 +397,8 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 		gst_element_set_state(data->audio_appsink, GST_STATE_PLAYING);
 		/* one has to set the newly added element to the same state as the rest of the elements. */
 	} else if (have_vid_track && (g_str_has_prefix(new_pad_type, "video/x-h264")
-		|| g_str_has_prefix(new_pad_type, "video/x-h263"))) {
+		|| g_str_has_prefix(new_pad_type, "video/x-h263")
+		|| g_str_has_prefix(new_pad_type, "video/mpeg"))) {
 		new_pad_vid_caps = gst_pad_get_current_caps(pad);
 		caps = gst_caps_to_string(new_pad_vid_caps);
 		g_print("   Video caps :%s\n", caps);
