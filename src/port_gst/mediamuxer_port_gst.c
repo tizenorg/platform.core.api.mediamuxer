@@ -171,7 +171,8 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
 		if ((mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
 				&& (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP
-				|| mimetype == MEDIA_FORMAT_H263))
+				|| mimetype == MEDIA_FORMAT_H263
+				|| mimetype == MEDIA_FORMAT_MPEG4_SP))
 			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP
 				&& (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP
 				|| mimetype == MEDIA_FORMAT_H263))) {
@@ -472,6 +473,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 								current->parser = gst_element_factory_make("h264parse", str_parser);
 							else if (mimetype == MEDIA_FORMAT_H263 || mimetype == MEDIA_FORMAT_H263P)
 								current->parser = gst_element_factory_make("h263parse", str_parser);
+							else if (mimetype == MEDIA_FORMAT_MPEG4_SP)
+								current->parser = gst_element_factory_make("mpeg4videoparse", str_parser);
 					} else {
 						MX_E("Can't retrive mimetype for the current track. Unsupported MIME Type\n");
 					}
