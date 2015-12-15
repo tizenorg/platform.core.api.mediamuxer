@@ -73,8 +73,8 @@ extern "C" {
 #define MEDIAMUXER_CHECK_NULL(x_var) \
 	do { \
 		if (!x_var) { \
-			MX_E("[%s] is NULL\n", #x_var); \
-			goto ERROR; \
+			 MX_E("[%s] is NULL, Line_No:%x\n", #x_var, __LINE__); \
+			 return MX_INVALID_ARGUMENT; \
 		} \
 	} while (0)
 #define MEDIAMUXER_CHECK_SET_AND_PRINT(x_var, x_cond, ret, ret_val, err_text)\
@@ -82,7 +82,8 @@ extern "C" {
 		if (x_var != x_cond) { \
 			ret = ret_val; \
 			MX_E("%s\n", #err_text); \
-			goto ERROR; \
+			MEDIAMUXER_FLEAVE(); \
+			return ret; \
 		} \
 	} while (0)
 #ifdef __cplusplus

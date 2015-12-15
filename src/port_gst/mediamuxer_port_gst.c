@@ -75,10 +75,6 @@ int gst_port_register(media_port_muxer_ops *pOps)
 
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 static int gst_muxer_init(MMHandleType *pHandle)
@@ -125,10 +121,6 @@ static int gst_muxer_set_data_sink(MMHandleType pHandle,
 	/* Set desired parameters */
 	mx_handle_gst->output_uri = uri;
 	mx_handle_gst->muxed_format = format;
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	MX_E("muxer handle already NULL, returning \n");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -215,10 +207,6 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 	} else {
 		MX_E("Unsupported A/V MIME Type: %x\n", mimetype);
 	}
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	MX_E(" gst_muxer_add_track failed \n");
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -641,11 +629,6 @@ static int gst_muxer_prepare(MMHandleType pHandle)
 	ret = _gst_create_pipeline(new_mediamuxer);
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MX_E("muxer handle NULL, returning \n");
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 static int gst_muxer_start(MMHandleType pHandle)
@@ -666,11 +649,6 @@ static int gst_muxer_start(MMHandleType pHandle)
 
 STATE_CHANGE_FAILED:
 	MX_E("muxer state change failed, returning \n");
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	MX_E("muxer handle NULL, returning \n");
 	ret = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -1207,10 +1185,6 @@ static int gst_muxer_pause(MMHandleType pHandle)
 	}
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 static int gst_muxer_resume(MMHandleType pHandle)
@@ -1226,10 +1200,6 @@ static int gst_muxer_resume(MMHandleType pHandle)
 		MX_I("Setting pipeline to resume failed");
 		ret = MX_ERROR_INVALID_ARGUMENT;
 	}
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	ret = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -1249,11 +1219,6 @@ static int gst_muxer_stop(MMHandleType pHandle)
 	return ret;
 STATE_CHANGE_FAILED:
 	MX_E("muxer state change failed, returning \n");
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	MX_E("muxer handle NULL, returning \n");
 	ret = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -1305,10 +1270,6 @@ static int gst_muxer_unprepare(MMHandleType pHandle)
 	ret = _gst_destroy_pipeline(gst_handle);
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 static int gst_muxer_destroy(MMHandleType pHandle)
@@ -1322,10 +1283,6 @@ static int gst_muxer_destroy(MMHandleType pHandle)
 	g_free(new_mediamuxer);
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MX_E("muxer handle already NULL, returning \n");
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 int gst_set_error_cb(MMHandleType pHandle, gst_error_cb callback, void* user_data)
@@ -1337,7 +1294,7 @@ int gst_set_error_cb(MMHandleType pHandle, gst_error_cb callback, void* user_dat
 
 	if (!gst_handle) {
 		MX_E("fail invaild param\n");
-		ret = MX_INVALID_ARG;
+		ret = MX_INVALID_ARGUMENT;
 		goto ERROR;
 	}
 

@@ -42,7 +42,7 @@ register_port register_port_func[] = {
 
 int mx_create(MMHandleType *muxer)
 {
-	int result = MX_ERROR_NONE;
+	int ret = MX_ERROR_NONE;
 	media_port_muxer_ops *pOps = NULL;
 	mx_handle_t *new_muxer = NULL;
 	MEDIAMUXER_FENTER();
@@ -52,32 +52,36 @@ int mx_create(MMHandleType *muxer)
 
 	/* alloc ops structure */
 	pOps = (media_port_muxer_ops *) g_malloc(sizeof(media_port_muxer_ops));
-	MEDIAMUXER_CHECK_NULL(pOps);
+	if (pOps == NULL) {
+		ret = MX_INVALID_ARGUMENT;
+		goto ERROR;
+	}
 
 	new_muxer->muxer_ops = pOps;
 	MX_I("mx_create allocating new_muxer->muxer_ops %p:\n",
 	     new_muxer->muxer_ops);
 	pOps->n_size = sizeof(media_port_muxer_ops);
 	/* load ini files */
-	result = mx_ini_load(&new_muxer->ini);
-	MEDIAMUXER_CHECK_SET_AND_PRINT(result, MX_ERROR_NONE, result,
-					MX_COURRPTED_INI, "can't load ini");
+	ret = mx_ini_load(&new_muxer->ini);
+	if (ret != MX_ERROR_NONE) {
+		ret = MX_COURRPTED_INI;
+		goto ERROR;
+	}
 
 	register_port_func[new_muxer->ini.port_type](pOps);
-	result = pOps->init(&new_muxer->mxport_handle);
-	MEDIAMUXER_CHECK_SET_AND_PRINT(result, MX_ERROR_NONE, result,
+	ret = pOps->init(&new_muxer->mxport_handle);
+	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret,
 					MX_NOT_INITIALIZED, "mx_create failed");
 	*muxer = (MMHandleType) new_muxer;
 	MEDIAMUXER_FLEAVE();
-	return result;
+	return ret;
 ERROR:
-	*muxer = (MMHandleType) 0;
 	if (pOps)
 		g_free(pOps);
 	if (new_muxer)
 		g_free(new_muxer);
 	MEDIAMUXER_FLEAVE();
-	return result;
+	return ret;
 }
 
 int mx_set_data_sink(MMHandleType mediamuxer, char *uri, mediamuxer_output_format_e format)
@@ -89,10 +93,6 @@ int mx_set_data_sink(MMHandleType mediamuxer, char *uri, mediamuxer_output_forma
 	media_port_muxer_ops *pOps = mx_handle->muxer_ops;
 	MEDIAMUXER_CHECK_NULL(pOps);
 	ret = pOps->set_data_sink(mx_handle->mxport_handle, uri, format);
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	ret = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -110,9 +110,6 @@ int mx_add_track(MMHandleType mediamuxer, media_format_h media_format, int *trac
 					"error while adding track");
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 int mx_prepare(MMHandleType mediamuxer)
@@ -126,9 +123,6 @@ int mx_prepare(MMHandleType mediamuxer)
 	ret = pOps->prepare(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
 					"error while preparing");
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -146,9 +140,6 @@ int mx_start(MMHandleType mediamuxer)
 					"error while starting");
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inbuf)
@@ -162,9 +153,6 @@ int mx_write_sample(MMHandleType mediamuxer, int track_index, media_packet_h inb
 	ret = pOps->write_sample(mx_handle->mxport_handle, track_index, inbuf);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
 					"error while writing sample");
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -182,9 +170,6 @@ int mx_close_track(MMHandleType mediamuxer, int track_index)
 					"error while closing track");
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 int mx_pause(MMHandleType mediamuxer)
@@ -198,9 +183,6 @@ int mx_pause(MMHandleType mediamuxer)
 	ret = pOps->pause(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
 					"error while pausing");
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -218,9 +200,6 @@ int mx_resume(MMHandleType mediamuxer)
 					"error while resuming");
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 int mx_stop(MMHandleType mediamuxer)
@@ -236,9 +215,6 @@ int mx_stop(MMHandleType mediamuxer)
 					"error while stopping");
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	MEDIAMUXER_FLEAVE();
-	return ret;
 }
 
 int mx_unprepare(MMHandleType mediamuxer)
@@ -252,9 +228,6 @@ int mx_unprepare(MMHandleType mediamuxer)
 	ret = pOps->unprepare(mx_handle->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret, MX_ERROR,
 					"error while destroying");
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -282,7 +255,6 @@ int mx_destroy(MMHandleType mediamuxer)
 		g_free((void *)mx_handle);
 		mx_handle = NULL;
 	}
-ERROR:
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -299,10 +271,6 @@ int mx_set_error_cb(MMHandleType muxer,
 	result = pOps->set_error_cb(mx_handle->mxport_handle, callback, user_data);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(result, MX_ERROR_NONE, result,
 			MX_ERROR, "error while setting error call back");
-	MEDIAMUXER_FLEAVE();
-	return result;
-ERROR:
-	result = MX_ERROR_INVALID_ARGUMENT;
 	MEDIAMUXER_FLEAVE();
 	return result;
 }

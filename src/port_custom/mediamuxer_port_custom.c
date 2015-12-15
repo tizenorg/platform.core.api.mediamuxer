@@ -45,9 +45,6 @@ int custom_port_register(media_port_muxer_ops *pOps)
 
 	MEDIAMUXER_FLEAVE();
 	return ret;
-ERROR:
-	ret = MX_ERROR_INVALID_ARGUMENT;
-	return ret;
 }
 
 static int custom_muxer_init(MMHandleType *pHandle)

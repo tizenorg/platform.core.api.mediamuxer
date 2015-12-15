@@ -102,7 +102,7 @@ typedef enum {
 	MX_ERROR = -1,			/**< muxer happens error */
 	MX_MEMORY_ERROR = -2,		/**< muxer memory is not enough */
 	MX_PARAM_ERROR = -3,		/**< muxer parameter is error */
-	MX_INVALID_ARG = -4,		/**< muxer has invalid arguments */
+	MX_INVALID_ARGUMENT = -4,	/**< muxer has invalid arguments */
 	MX_PERMISSION_DENIED = -5,
 	MX_INVALID_STATUS = -6,		/**< muxer works at invalid status */
 	MX_NOT_SUPPORTED = -7,		/**< muxer can't support this specific video format */
