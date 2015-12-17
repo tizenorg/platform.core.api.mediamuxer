@@ -55,10 +55,19 @@
 #define GST_SECOND (G_USEC_PER_SEC * G_GINT64_CONSTANT(1000))
 #endif
 
+enum {
+	CURRENT_STATUS_MAINMENU,
+	CURRENT_STATUS_MP4_FILENAME,
+	CURRENT_STATUS_DATA_SINK,
+	CURRENT_STATUS_RAW_VIDEO_FILENAME,
+	CURRENT_STATUS_RAW_AUDIO_FILENAME,
+	CURRENT_STATUS_SET_VENC_INFO,
+	CURRENT_STATUS_SET_AENC_INFO,
+};
+
 mediamuxer_h myMuxer = 0;
 media_format_h media_format = NULL;
 media_format_h media_format_a = NULL;
-
 media_format_h input_fmt = NULL;
 
 #if DUMP_OUTBUF
@@ -93,9 +102,11 @@ bool have_aud_track = false;
 int track_index_vid;
 int track_index_aud;
 int track_index_aud2;
+int g_menu_state = CURRENT_STATUS_MAINMENU;
 
 int demux_mp4();
 int demux_audio();
+static void display_sub_basic();
 void mediacodec_process_all(void);
 void input_raw_filepath(char *filename);
 void mediacodec_config_set_codec(int codecid, int flag);
@@ -239,8 +250,6 @@ int test_mediamuxer_add_track_audio()
 			g_print("Problem during media_format_set_audio_mime operation for amr-wb audio\n");
 	}
 
-
-
 	if (validate_with_codec) {
 		if (media_format_set_audio_channel(media_format_a, channel) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_channel operation\n");
@@ -256,7 +265,6 @@ int test_mediamuxer_add_track_audio()
 	}
 
 	media_format_set_audio_aac_type(media_format_a, true);
-
 	media_format_get_audio_info(media_format_a, &mimetype, &channel, &samplerate, &bit, &avg_bps);
 
 	g_print("Audio Mimetype trying to set: %x (AAC : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_AAC_LC));
@@ -294,9 +302,9 @@ int test_mediamuxer_write_sample()
 	if (validate_with_codec) {
 		/* Test muxer with codec */
 		mediacodec_process_all();
-	} else if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3) == 0
-		|| strncmp(data_sink, "6", 1) == 0
-		|| strncmp(data_sink, "7", 1) == 0 || strncmp(data_sink, "amr", 3) == 0) {
+	} else if (strncmp(data_sink, "31", 2) == 0 || strncmp(data_sink, "wav", 3) == 0
+		|| strncmp(data_sink, "41", 2) == 0
+		|| strncmp(data_sink, "42", 2) == 0 || strncmp(data_sink, "amr", 3) == 0) {
 		demux_audio();
 	} else {
 
@@ -371,19 +379,6 @@ void quit_testApp(void)
 	/* To Do: Replace exit(0) with smooth exit */
 	exit(0);
 }
-
-enum {
-	CURRENT_STATUS_MAINMENU,
-	CURRENT_STATUS_MP4_FILENAME,
-	CURRENT_STATUS_DATA_SINK,
-	CURRENT_STATUS_RAW_VIDEO_FILENAME,
-	CURRENT_STATUS_RAW_AUDIO_FILENAME,
-	CURRENT_STATUS_SET_VENC_INFO,
-	CURRENT_STATUS_SET_AENC_INFO,
-};
-
-int g_menu_state = CURRENT_STATUS_MAINMENU;
-static void display_sub_basic();
 
 void reset_menu_state()
 {
@@ -500,7 +495,6 @@ gboolean timeout_menu_display(void *data)
 
 static void interpret(char *cmd)
 {
-
 	switch (g_menu_state) {
 	case CURRENT_STATUS_MAINMENU: {
 			_interpret_main_menu(cmd);

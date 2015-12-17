@@ -159,15 +159,15 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3) == 0) {
+			if (strncmp(data_sink, "31", 2) == 0 || strncmp(data_sink, "wav", 3) == 0) {
 				aud_caps = "audio/x-raw, format=(string)S16LE, layout=(string)interleaved, channels=(int)2, channel-mask=(bitmask)0x0000000000000003, rate=(int)44100";
 				/* no need to set the rest of the parameters for wav */
 				goto SET_CAPS;
-			} else if (strncmp(data_sink, "6", 1) == 0 || strncmp(data_sink, "amr-nb", 6) == 0) {
+			} else if (strncmp(data_sink, "41", 2) == 0 || strncmp(data_sink, "amr-nb", 6) == 0) {
 				/* ToDo: Query caps from amrparse src pad */
 				aud_caps = "audio/AMR, channels=1, rate=8000";
 				goto SET_CAPS;
-			} else if (strncmp(data_sink, "7", 1) == 0 || strncmp(data_sink, "amr-wb", 6) == 0) {
+			} else if (strncmp(data_sink, "42", 2) == 0 || strncmp(data_sink, "amr-wb", 6) == 0) {
 				/* ToDo: Query caps from amrparse src pad */
 				aud_caps = "audio/AMR-WB, channels=1, rate=16000";
 				goto SET_CAPS;
@@ -483,13 +483,13 @@ int demux_audio()
 	/* Create gstreamer elements for demuxer */
 	data.pipeline = gst_pipeline_new("DemuxerPipeline");
 	data.source = gst_element_factory_make("filesrc", "file-source");
-	if (strncmp(data_sink, "5", 1) == 0 || strncmp(data_sink, "wav", 3) == 0) {
+	if (strncmp(data_sink, "31", 2) == 0 || strncmp(data_sink, "wav", 3) == 0) {
 		data.demuxer = gst_element_factory_make("wavparse", "wavparse");
 		new_pad_type_aud = "audio/x-wav";	/* Update to aid cb */
-	} else if (strncmp(data_sink, "6", 1) == 0) {
+	} else if (strncmp(data_sink, "41", 2) == 0) {
 		data.demuxer = gst_element_factory_make("amrparse", "amrparse");
 		new_pad_type_aud = "audio/AMR";	/* Update to aid cb */
-	} else if (strncmp(data_sink, "7", 1) == 0 || strncmp(data_sink, "amr-wb", 6) == 0) {
+	} else if (strncmp(data_sink, "42", 2) == 0 || strncmp(data_sink, "amr-wb", 6) == 0) {
 		data.demuxer = gst_element_factory_make("amrparse", "amrparse");
 		new_pad_type_aud = "audio/AMR-WB";	/* Update to aid cb */
 	}
