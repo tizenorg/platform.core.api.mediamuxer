@@ -19,10 +19,6 @@ BuildRequires:  pkgconfig(gstreamer-app-1.0)
 BuildRequires:  pkgconfig(iniparser)
 BuildRequires:  pkgconfig(capi-media-codec)
 
-Requires(post): /sbin/ldconfig
-Requires(post): libprivilege-control
-Requires(postun): /sbin/ldconfig
-
 %description
 
 %package devel
