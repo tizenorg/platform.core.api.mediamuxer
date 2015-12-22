@@ -231,10 +231,10 @@ int test_mediamuxer_add_track_audio()
 	} else if (strncmp(data_sink, "31", 2) == 0) {
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_PCM) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation for PCM in WAV\n");
-	} else if (strncmp(data_sink,"41",2) == 0) {
+	} else if (strncmp(data_sink, "41", 2) == 0) {
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation for amr-nb audio\n");
-	} else if (strncmp(data_sink,"42",2) == 0) {
+	} else if (strncmp(data_sink, "42", 2) == 0) {
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_WB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation for amr-wb audio\n");
 	}
