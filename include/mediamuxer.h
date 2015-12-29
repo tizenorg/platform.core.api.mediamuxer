@@ -110,7 +110,9 @@ typedef void (*mediamuxer_error_cb)(mediamuxer_error_e error, void *user_data);
  * @param[out] muxer  A new handle to media muxer
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
- * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid Operation
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid Operation
+ * @retval #MEDIAMUXER_ERROR_OUT_OF_MEMORY Allocation Failed. Out of Memory.
  * @post The media muxer state will be #MEDIAMUXER_STATE_IDLE.
  * @see mediamuxer_destroy()
  */
@@ -128,8 +130,8 @@ int mediamuxer_create(mediamuxer_h *muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
- * @retval #MEDIAMUXER_ERROR_PERMISSION_DENIED Permission denied
  * @retval #MEDIAMUXER_ERROR_INVALID_PATH Invalid path
  * @pre The media muxer state will be #MEDIAMUXER_STATE_IDLE by calling mediamuxer_create
  * @see #mediamuxer_output_format_e
@@ -145,6 +147,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_IDLE.
  * @see #media_format_h
@@ -161,6 +164,7 @@ int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *t
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_IDLE.
  * @post The media muxer state will be #MEDIAMUXER_STATE_READY.
@@ -177,6 +181,7 @@ int mediamuxer_prepare(mediamuxer_h muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY.
  * @post The media muxer state will be #MEDIAMUXER_STATE_MUXING.
@@ -194,6 +199,7 @@ int mediamuxer_start(mediamuxer_h muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY by calling mediamuxer_prepare() or
  *      set to #MEDIAMUXER_STATE_PAUSED by calling mediamuxer_pause().
@@ -213,7 +219,9 @@ int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h 
  * @param[in] track_index the selected track index
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING.
  * @see mediamuxer_write_sample()
  * @see mediamuxer_pause()
@@ -231,6 +239,7 @@ int mediamuxer_close_track(mediamuxer_h muxer, int track_index);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING.
  * @post The media muxer state will be #MEDIAMUXER_STATE_PAUSED.
@@ -248,6 +257,7 @@ int mediamuxer_pause(mediamuxer_h muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_PAUSED.
  * @post The media muxer state will be #MEDIAMUXER_STATE_MUXING.
@@ -263,6 +273,7 @@ int mediamuxer_resume(mediamuxer_h muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_MUXING
  *	or #MEDIAMUXER_STATE_PAUSED.
@@ -280,6 +291,7 @@ int mediamuxer_stop(mediamuxer_h muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre The media muxer state must be set to #MEDIAMUXER_STATE_READY or
  *      set to #MEDIAMUXER_STATE_PAUSED by calling mediamuxer_pause().
@@ -297,6 +309,7 @@ int mediamuxer_unprepare(mediamuxer_h muxer);
  * @return @c 0 on success, otherwise a negative error value
  * @retval #MEDIAMUXER_ERROR_NONE Successful
  * @retval #MEDIAMUXER_ERROR_INVALID_PARAMETER Invalid parameter
+ * @retval #MEDIAMUXER_ERROR_INVALID_OPERATION Invalid operation
  * @retval #MEDIAMUXER_ERROR_INVALID_STATE Invalid state
  * @pre Create a media muxer handle by calling mediamuxer_create() function.
  * @post The media muxer state will be #MEDIAMUXER_STATE_NONE.
@@ -320,11 +333,6 @@ int mediamuxer_get_state(mediamuxer_h muxer, mediamuxer_state_e *state);
 
 /**
  * @brief Registers a error callback function to be invoked when an error occurs.
- * @details Following error codes can be delivered.
- *          #MEDIAMUXER_ERROR_INVALID_OPERATION,
- *          #MEDIAMUXER_ERROR_NOT_SUPPORTED,
- *          #MEDIAMUXER_ERROR_INVALID_PATH,
- *          #MEDIAMUXER_ERROR_RESOURCE_LIMIT
  * @since_tizen 3.0
  * @param[in] muxer   The media muxer handle
  * @param[in] callback  Callback function pointer
