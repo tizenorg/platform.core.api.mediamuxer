@@ -17,9 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mm.h>
 #include <mediamuxer_port.h>
-#include <mm_types.h>
 #include <mediamuxer.h>
 #include <mediamuxer_private.h>
 #include <dlog.h>
@@ -36,7 +34,7 @@ static gboolean _mediamuxer_error_cb(mediamuxer_error_e error, void *user_data);
 int mediamuxer_create(mediamuxer_h *muxer)
 {
 	MX_I("mediamuxer_create\n");
-	mediamuxer_error_e ret = MM_ERROR_NONE;
+	mediamuxer_error_e ret = MEDIAMUXER_ERROR_NONE;
 	MUXER_INSTANCE_CHECK(muxer);
 
 	mediamuxer_s *handle;
@@ -51,7 +49,7 @@ int mediamuxer_create(mediamuxer_h *muxer)
 	}
 
 	ret = mx_create(&handle->mx_handle);
-	if (ret != MM_ERROR_NONE) {
+	if (ret != MEDIAMUXER_ERROR_NONE) {
 		MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 		free(handle);
@@ -80,7 +78,8 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 
 	if (path == NULL) {
 		MX_I("Invalid uri");
-		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
+		handle->muxer_state = MEDIAMUXER_STATE_NONE;
+		return MEDIAMUXER_ERROR_INVALID_PATH;
 	}
 
 	if (format != MEDIAMUXER_CONTAINER_FORMAT_MP4
@@ -89,6 +88,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 		&& format != MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
 		&& format != MEDIAMUXER_CONTAINER_FORMAT_AMR_WB) {
 		MX_E("Unsupported Container format: %d \n", format);
+		handle->muxer_state = MEDIAMUXER_STATE_NONE;
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
 	}
 	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {
@@ -96,6 +96,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 		if (ret != MEDIAMUXER_ERROR_NONE) {
 			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
+			handle->muxer_state = MEDIAMUXER_STATE_NONE;
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 		} else {
 			MX_I("[CoreAPI][%s] set_data_sink successful, handle : %p",
@@ -104,6 +105,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 	} else {
 		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
 			__FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
+		handle->muxer_state = MEDIAMUXER_STATE_NONE;
 		ret = MEDIAMUXER_ERROR_INVALID_STATE;
 	}
 	return ret;
