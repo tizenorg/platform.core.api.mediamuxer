@@ -22,7 +22,7 @@
 
 #define EOS_POLL_PERIOD 1000
 #define WRITE_POLL_PERIOD 100
-/* #define SEND_FULL_CAPS_VIA_CODEC_DATA *//* For debug purpose */
+#define SEND_FULL_CAPS_VIA_CODEC_DATA /* For debug purpose */
 #define ASYCHRONOUS_WRITE  /* write sample is not blocking */
 
 static int gst_muxer_init(MMHandleType *pHandle);
@@ -773,19 +773,7 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 	MEDIAMUXER_FENTER();
 	gint ret = MX_ERROR_NONE;
 	GstCaps *new_cap;
-	media_format_mimetype_e mimetype;
 	media_format_h format;
-	GValue val = G_VALUE_INIT;
-	int numerator;
-	int denominator = 1;
-	int channel;
-	int samplerate;
-	int bit;
-	int width;
-	int height;
-	int avg_bps;
-	int max_bps;
-	gchar *caps_string = NULL;
 	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
 	media_format_type_e formattype;
 	char *codec_data;
@@ -826,13 +814,38 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			break;
 		}
 		codec_data_size = strlen(codec_data) + 1;
+
+		if ((strlen(codec_data)+1) != codec_data_size) {
+			MX_E("strlen(codec_data)+1 is not matching with codec_data_size. They are supposed to be equal.\n");
+			return MX_ERROR_INVALID_ARGUMENT;
+		}
 		MX_I("Extracted codec data is =%s size is %d\n", codec_data, codec_data_size);
 
 		if (current->caps == NULL ||
-		    g_strcmp0(codec_data, current->caps) != 0) {
+			g_strcmp0(codec_data, current->caps) != 0) {
 
-#ifndef SEND_FULL_CAPS_VIA_CODEC_DATA
-
+#ifdef SEND_FULL_CAPS_VIA_CODEC_DATA
+			/* Debugging purpose. The whole caps filter can be sent via codec_data */
+			new_cap = gst_caps_from_string(codec_data);
+			MX_I("codec  cap is=%s\n", codec_data);
+			g_object_set(current->appsrc, "caps", new_cap, NULL);
+			if (current->caps == NULL) {
+				current->caps = (char *)g_malloc(codec_data_size);
+				if (current->caps == NULL) {
+					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
+					gst_caps_unref(new_cap);
+					ret = MX_ERROR_UNKNOWN;
+					break;
+				}
+			}
+			g_stpcpy(current->caps, codec_data);
+#else
+			gchar *caps_string = NULL;
+			int channel;
+			int samplerate;
+			int bit;
+			int avg_bps;
+			media_format_mimetype_e mimetype;
 			if (media_format_get_audio_info(format,
 				&mimetype, &channel, &samplerate,
 				&bit, &avg_bps)) {
@@ -860,25 +873,8 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			     caps_string);
 			if (caps_string)
 				g_free(caps_string);
-			g_object_set(current->appsrc,
-				"caps", new_cap, NULL);
+			g_object_set(current->appsrc, "caps", new_cap, NULL);
 			MX_I("copying   current->caps = codec_data\n");
-			g_stpcpy(current->caps, codec_data);
-#else
-			/* Debugging purpose. The whole caps filter can be sent via codec_data */
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("codec  cap is=%s\n", codec_data);
-			g_object_set(current->appsrc,
-				"caps", new_cap, NULL);
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					gst_caps_unref(new_cap);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
 			g_stpcpy(current->caps, codec_data);
 #endif
 			gst_caps_unref(new_cap);
@@ -897,12 +893,43 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			break;
 		}
 		codec_data_size = strlen(codec_data) + 1;
-		MX_I("codec data is =%s size is %d\n",
-		     codec_data, codec_data_size);
+
+		if ((strlen(codec_data)+1) != codec_data_size) {
+			MX_E("strlen(codec_data)+1 is not matching with codec_data_size. They are supposed to be equal.\n");
+			return MX_ERROR_INVALID_ARGUMENT;
+		}
+
+		MX_I("codec data is =%s size is %d\n", codec_data, codec_data_size);
 		if (current->caps == NULL ||
 		    g_strcmp0(codec_data, current->caps) != 0) {
 
-#ifndef SEND_FULL_CAPS_VIA_CODEC_DATA
+#ifdef SEND_FULL_CAPS_VIA_CODEC_DATA
+			/* Debugging purpose. The whole caps filter can be sent via codec_data */
+			codec_data_size = strlen(codec_data) + 1;
+			MX_I("extracted codec data is =%s\n", codec_data);
+			new_cap = gst_caps_from_string(codec_data);
+			MX_I("New cap is=%s\n", codec_data);
+			g_object_set(current->appsrc, "caps", new_cap, NULL);
+			if (current->caps == NULL) {
+				current->caps = (char *)g_malloc(codec_data_size);
+				if (current->caps == NULL) {
+					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
+					gst_caps_unref(new_cap);
+					ret = MX_ERROR_UNKNOWN;
+					break;
+				}
+			}
+			g_stpcpy(current->caps, codec_data);
+#else
+			 gchar *caps_string = NULL;
+			GValue val = G_VALUE_INIT;
+			int numerator;
+			int denominator = 1;
+			int width;
+			int height;
+			int avg_bps;
+			int max_bps;
+			media_format_mimetype_e mimetype;
 
 			if (media_format_get_video_info(format,
 				&mimetype, &width, &height,
@@ -922,7 +949,7 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			new_cap = gst_caps_from_string(codec_data);
 			MX_I("New cap set by codec data is=%s\n", codec_data);
 			if (__gst_codec_specific_caps(new_cap, mimetype)) {
-				MX_E("Setting Audio caps failed\n");
+				MX_E("Setting Video caps failed\n");
 				gst_caps_unref(new_cap);
 				ret = MX_ERROR_UNKNOWN;
 				break;
@@ -940,24 +967,6 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			if (caps_string)
 				g_free(caps_string);
 			g_object_set(current->appsrc, "caps", new_cap, NULL);
-#else
-			/* Debugging purpose. The whole caps filter can be sent via codec_data */
-			media_packet_get_extra(packet, &codec_data);
-			codec_data_size = strlen(codec_data) + 1;
-			MX_I("extracted codec data is =%s\n", codec_data);
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("New cap is=%s\n", codec_data);
-			g_object_set(gst_handle->video_appsrc, "caps", new_cap, NULL);
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					gst_caps_unref(new_cap);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			g_stpcpy(current->caps, codec_data);
 #endif
 			gst_caps_unref(new_cap);
 		}
