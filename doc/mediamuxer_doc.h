@@ -34,9 +34,9 @@
  *
  * MEDIAMUXER API set allows :
  * The API set allows one to directly access media muxer on device.
- * Application can create, add relevent media track(s) and write corresponding
+ * Application can create, add relevant media track(s) and write corresponding
  * samples to get muxed media files. mediamuxer takes encoded media as input
- * and gives muxed media in a compatable container format.
+ * and gives muxed media in a compatible container format.
  *
  * Typical Call Flow of mediamuxer APIs is:
  * mediamuxer_create()
