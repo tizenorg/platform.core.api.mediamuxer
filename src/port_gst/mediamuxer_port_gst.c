@@ -520,6 +520,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 						MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
 						if (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS)
 							current->parser = gst_element_factory_make("aacparse", str_parser);
+						 else if (mimetype == MEDIA_FORMAT_PCM || (mimetype == MEDIA_FORMAT_AMR_NB && gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP))
+							MX_I("Do Nothing, as there is no need of parser for wav & 3pg(amr-nb) \n");
 						else if (mimetype == MEDIA_FORMAT_AMR_NB || mimetype == MEDIA_FORMAT_AMR_WB)
 							current->parser = gst_element_factory_make("amrparse", str_parser);
 						else if (mimetype == MEDIA_FORMAT_PCM)
@@ -535,7 +537,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					}
 
 					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, NULL);
-					if (mimetype != MEDIA_FORMAT_PCM) {
+					if (mimetype == MEDIA_FORMAT_PCM || (mimetype == MEDIA_FORMAT_AMR_NB && gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP)) {
+						MX_I("Do Nothing, as there is no need of parser for wav & 3pg(amr-nb) \n");
+					} else {
 						if (!current->parser) {
 							MX_E("One element (audio-parser) could not be created. Exiting.\n");
 							ret = MEDIAMUXER_ERROR_RESOURCE_LIMIT;
@@ -553,6 +557,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 						G_CALLBACK(_audio_start_feed), current);
 					g_signal_connect(current->appsrc, "enough-data",
 						G_CALLBACK(_audio_stop_feed), current);
+					g_object_set (current->appsrc, "format", GST_FORMAT_TIME, NULL);
 #else
 					g_object_set(current->appsrc, "block", TRUE, NULL);
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
@@ -561,7 +566,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					/* For wav, wavenc is muxer */
 					if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV
 						|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
-						|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_WB) {
+						|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AMR_WB
+						|| (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP && mimetype == MEDIA_FORMAT_AMR_NB)) {
 						gst_element_link(current->appsrc, gst_handle->muxer);
 					} else {
 						gst_element_link(current->appsrc, current->parser);
