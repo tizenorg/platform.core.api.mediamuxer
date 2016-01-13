@@ -136,6 +136,11 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 	mx_gst_track *current = NULL;
 	mx_gst_track *last = NULL;
 
+	if (!mx_handle_gst->output_uri) {
+		MX_E("URI is null. Possibly, set_data_sink failed. returning. \n");
+		return MX_ERROR_INVALID_ARGUMENT;
+	}
+
 	current = (mx_gst_track *)g_malloc(sizeof(mx_gst_track));
 	if (!current) {
 		MX_E("Not able to allocate memory\n");
@@ -465,6 +470,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 								current->parser = gst_element_factory_make("mpeg4videoparse", str_parser);
 					} else {
 						MX_E("Can't retrive mimetype for the current track. Unsupported MIME Type\n");
+						ret = MEDIAMUXER_ERROR_INVALID_PARAMETER;
+						goto ERROR;
 					}
 
 					if ((!current->appsrc)  || (!current->parser)) {
@@ -783,6 +790,8 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 	char *codec_data;
 	unsigned int codec_data_size;
 	mx_gst_track *current = NULL;
+	media_format_mimetype_e track_mime;
+	media_format_mimetype_e current_mime;
 
 	/* Reach that track index and set the codec data */
 	for (current = gst_handle->track_info.track_head; current; current = current->next)
@@ -811,6 +820,25 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			MX_E("\n\nThis is not an audio track_index. Track_index is not in 3*n+1 format\n\n");
 			goto ERROR;
 		}
+
+		/* return if track_mime is different to current_mime */
+		if (media_format_get_audio_info((media_format_h)(current->media_format), &track_mime, NULL, NULL, NULL, NULL)
+			== MEDIA_FORMAT_ERROR_NONE) {
+			if (media_format_get_audio_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
+				== MEDIA_FORMAT_ERROR_NONE) {
+				if (track_mime != current_mime) {
+					MX_E("audio track_mime is not matching with packet mime. returning");
+					return MX_ERROR_INVALID_ARGUMENT;
+				}
+			} else {
+				MX_E("cant read audio mime in packet. returning\n");
+				return MX_ERROR_INVALID_ARGUMENT;
+			}
+		} else {
+			MX_E("cant read audio mime, set during add_track. returning\n");
+			return MX_ERROR_INVALID_ARGUMENT;
+		}
+
 		if (media_packet_get_extra(packet,
 				(void **)&codec_data)) {
 			MX_E("media_packet_get_extra call failed\n");
@@ -890,6 +918,25 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			MX_E("\n\nThis is not an video track_index. Video track_index is not in 3*n format\n\n");
 			goto ERROR;
 		}
+
+		/* return if track_mime is different to current_mime */
+		if (media_format_get_video_info((media_format_h)(current->media_format), &track_mime, NULL, NULL, NULL, NULL)
+			== MEDIA_FORMAT_ERROR_NONE) {
+			if (media_format_get_audio_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
+				== MEDIA_FORMAT_ERROR_NONE) {
+				if (track_mime != current_mime) {
+					MX_E("video track_mime is not matching with packet mime. returning");
+					return MX_ERROR_INVALID_ARGUMENT;
+				}
+			} else {
+				MX_E("cant read video mime. returning\n");
+				return MX_ERROR_INVALID_ARGUMENT;
+			}
+		} else {
+			MX_E("cant read video mime in packet. returning\n");
+			return MX_ERROR_INVALID_ARGUMENT;
+		}
+
 		if (media_packet_get_extra(packet,
 			(void **)&codec_data)) {
 			MX_E("media_packet_get_extra call failed\n");
@@ -1083,7 +1130,11 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 		goto ERROR;
 	}
 
-	_gst_set_caps(pHandle, inbuf, track_index);
+	if (_gst_set_caps(pHandle, inbuf, track_index) != MX_ERROR_NONE) {
+		ret = MX_ERROR_INVALID_ARGUMENT;
+		goto ERROR;
+	}
+
 	MX_I("Track_index passed = %d, working-with_track_index = %d\n", track_index, current->track_index);
 
 	GstBuffer *gst_inbuf2 = NULL;

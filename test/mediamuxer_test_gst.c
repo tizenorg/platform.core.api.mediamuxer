@@ -105,24 +105,32 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (g_str_has_prefix(new_pad_type_aud, "audio/mpeg")) {
+			g_print("audio data_sink = %s\n",data_sink);
+			/* check if the mime selected during set_data_sink is matching with the mime of the file inputted.*/
+			if (g_str_has_prefix(new_pad_type_aud, "audio/mpeg")
+				&& (strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0
+					|| strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0)) {
 				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AAC_LC)) {
 					g_print("media_format_set_audio_mime failed\n");
 					return;
 				}
-			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR-WB")) {
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR-WB")
+				&& strncmp(data_sink, "42", 2) == 0) {
 				g_print("For amr-wb, setting encoded media type as MEDIA_FORMAT_AMR_WB\n");
 				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AMR_WB)) {
 					g_print("media_format_set_audio_mime failed\n");
 					return;
 				}
-			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR")) {
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/AMR")
+				&& (strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "41", 2) == 0)) {
 				g_print("For amr-nb, setting encoded media type as MEDIA_FORMAT_AMR_NB\n");
 				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_AMR_NB)) {
 					g_print("media_format_set_audio_mime failed\n");
 					return;
 				}
-			} else if (g_str_has_prefix(new_pad_type_aud, "audio/x-wav")) { g_print("creating audio-wav\n");
+			} else if (g_str_has_prefix(new_pad_type_aud, "audio/x-wav")
+				&& strncmp(data_sink, "31", 2) == 0) {
+				g_print("creating audio-wav\n");
 				if (media_format_set_audio_mime(audfmt, MEDIA_FORMAT_PCM)) {
 					g_print("media_format_set_audio_mime failed\n");
 					return;
@@ -237,26 +245,31 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 				g_print("media_format_create failed\n");
 				return;
 			}
+			g_print("video data_sink = %s\n",data_sink);
 
-			if (g_str_has_prefix(new_pad_type_vid, "video/x-h264")) {
+			/* check if the mime selected during set_data_sink is matching with the mime of the file inputted.*/
+			if (g_str_has_prefix(new_pad_type_vid, "video/x-h264")
+				&& (strncmp(data_sink, "11", 2) == 0  || strncmp(data_sink, "21", 2) == 0 )) {
 				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H264_SP)) {
 					g_print("media_format_set_video_mime to H264_SP failed\n");
 					return;
 				}
-			} else if (g_str_has_prefix(new_pad_type_vid, "video/mpeg")) {
+			} else if (g_str_has_prefix(new_pad_type_vid, "video/mpeg")
+				&& strncmp(data_sink, "13", 2) == 0  ) {
 				g_print("For mpeg4, setting encoded media type as MEDIA_FORMAT_MPEG4_SP\n");
 				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_MPEG4_SP)) {
 					g_print("media_format_set_video_mime to MPEG4_SP failed\n");
 					return;
 				}
-			} else if (g_str_has_prefix(new_pad_type_vid, "video/x-h263")) {
+			} else if (g_str_has_prefix(new_pad_type_vid, "video/x-h263")
+				&& (strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "22", 2) == 0 || strncmp(data_sink, "23", 2) == 0)) {
 				g_print("For h263, setting encoded media type as MEDIA_FORMAT_H263\n");
 				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_H263)) {
 					g_print("media_format_set_vidio_mime failed\n");
 					return;
 				}
 			} else {
-				g_print("Unsupported encoded video mime. Currently muxer supports:h263, h264 & mpeg4");
+				g_print("Unsupported encoded video mime. Currently muxer supports:h263, h264 & mpeg4\n");
 			}
 
 			if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
