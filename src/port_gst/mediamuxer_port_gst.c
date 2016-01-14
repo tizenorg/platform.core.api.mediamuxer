@@ -827,7 +827,7 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			if (media_format_get_audio_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
 				== MEDIA_FORMAT_ERROR_NONE) {
 				if (track_mime != current_mime) {
-					MX_E("audio track_mime is not matching with packet mime. returning");
+					MX_E("audio track_mime is not matching with packet mime. returning\n");
 					return MX_ERROR_INVALID_ARGUMENT;
 				}
 			} else {
@@ -922,10 +922,10 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 		/* return if track_mime is different to current_mime */
 		if (media_format_get_video_info((media_format_h)(current->media_format), &track_mime, NULL, NULL, NULL, NULL)
 			== MEDIA_FORMAT_ERROR_NONE) {
-			if (media_format_get_audio_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
+			if (media_format_get_video_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
 				== MEDIA_FORMAT_ERROR_NONE) {
 				if (track_mime != current_mime) {
-					MX_E("video track_mime is not matching with packet mime. returning");
+					MX_E("video track_mime is not matching with packet mime. returning\n");
 					return MX_ERROR_INVALID_ARGUMENT;
 				}
 			} else {

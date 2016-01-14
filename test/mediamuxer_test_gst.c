@@ -85,8 +85,12 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 	int key;
 	GstMapInfo map;
 
-	if (count == 0)
-		g_print("Called __audio_app_sink_callback\n");
+	if (count == 0) {
+		g_print("Called __audio_app_sink_callback, track_index_aud = %d\n", track_index_aud);
+		if (validate_multitrack)
+			g_print("track_index_aud2 = %d\n", track_index_aud2);
+		g_print("audio data_sink = %s\n", data_sink);
+	}
 
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
 	buffer = gst_sample_get_buffer(sample);
@@ -228,14 +232,20 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 	media_packet_h vid_pkt;
 	uint64_t ns;
 	static int count = 0;
-	unsigned int vsize;
 	int key;
 	guint8 *dptr;
 	GstMapInfo map;
 	GstSample *sample;
+	GstStructure *caps_struc = NULL;
+	GstCaps *vid_caps_gst = NULL;
+	gint video_width;
+	gint video_height;
+	gboolean ret = false;
 
-	if (count == 0)
-		g_print("Called __video_app_sink_callback\n");
+	if (count == 0) {
+		g_print("Called __video_app_sink_callback. track_index_vid = %d\n", track_index_vid);
+		g_print("video data_sink = %s\n", data_sink);
+	}
 
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
 	buffer = gst_sample_get_buffer(sample);
@@ -280,9 +290,20 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 				key = 0;
 			}
 
-			vsize = map.size;
-			media_format_set_video_width(vidfmt, vsize/2+1);
-			media_format_set_video_height(vidfmt, vsize/2+1);
+			vid_caps_gst = gst_caps_from_string(vid_caps);
+			caps_struc = gst_caps_get_structure(vid_caps_gst, 0);
+
+			ret = gst_structure_get_int(caps_struc, "width", &video_width);
+			ret = ret && gst_structure_get_int(caps_struc, "height", &video_height);
+			if (!ret) {
+				g_print("Failed to retrive video width/height. returning. \n");
+				return;
+			}
+
+			if (count == 0)
+				g_print("Extracted width=%d, height=%d\n", video_width, video_height);
+			media_format_set_video_width(vidfmt, video_width);
+			media_format_set_video_height(vidfmt, video_height);
 			/* frame rate is came from the caps filter of demuxer */
 			if (media_format_set_video_frame_rate(vidfmt, 30)) {
 				g_print("media_format_set_video_frame_rate failed\n");

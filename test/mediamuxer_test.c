@@ -99,9 +99,9 @@ char data_sink[MAX_INPUT_SIZE];
 bool have_mp4 = false;
 bool have_vid_track = false;
 bool have_aud_track = false;
-int track_index_vid;
-int track_index_aud;
-int track_index_aud2;
+int track_index_vid = -1;
+int track_index_aud = -1;
+int track_index_aud2 = -1;
 int g_menu_state = CURRENT_STATUS_MAINMENU;
 
 int demux_mp4();
@@ -276,13 +276,12 @@ int test_mediamuxer_add_track_audio()
 
 	/* To add audio track */
 	mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud);
+	g_print("Audio Track index returned is: %d\n", track_index_aud);
 
 	if (validate_multitrack) {
 		mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud2);
-		g_print("Audio Track index is returned : %d\n", track_index_aud2);
+		g_print("Audio Multi-Track index returned is: %d\n", track_index_aud2);
 	}
-
-	g_print("Audio Track index is returned : %d\n", track_index_aud);
 	return 0;
 }
 
