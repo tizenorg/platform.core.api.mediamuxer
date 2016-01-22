@@ -422,7 +422,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_WAV
 		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
 		&& gst_handle->muxed_format != MEDIAMUXER_CONTAINER_FORMAT_AMR_WB) {
-		MX_E("Unsupported container-format. Currently suports only MP4, 3GP, WAV & AMR");
+		MX_E("Unsupported container-format. Currently suports only MP4, 3GP, WAV & AMR\n");
 		ret = MEDIAMUXER_ERROR_INVALID_PATH;
 		goto ERROR;
 	} else {
@@ -449,7 +449,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 		gst_bin_add_many(GST_BIN(gst_handle->pipeline), gst_handle->muxer, gst_handle->sink, NULL);
 
 		if (!gst_element_link(gst_handle->muxer, gst_handle->sink))
-			MX_E("muxer-sink link failed");
+			MX_E("muxer-sink link failed\n");
 
 		if (gst_handle->track_info.video_track_cnt) { /* Video track(s) exist */
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
@@ -482,9 +482,6 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, current->parser, NULL);
 
-					/* Set video caps for corresponding src elements */
-					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
-
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent fucntions to each track */
 					MX_I("\nRegistering video callback for cur->tr_ind = %d\n", current->track_index);
@@ -506,7 +503,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					vid_src = gst_element_get_static_pad(current->parser, "src");
 
 					if (gst_pad_link(vid_src, video_pad) != GST_PAD_LINK_OK)
-						MX_E("video parser to muxer link failed");
+						MX_E("video parser to muxer link failed\n");
 
 					gst_object_unref(GST_OBJECT(vid_src));
 					gst_object_unref(GST_OBJECT(video_pad));
@@ -552,8 +549,6 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 						}
 						gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->parser, NULL);
 					}
-					/* Set video caps for corresponding src elements */
-					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
 
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent fucntions to each track */
@@ -583,7 +578,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 						aud_src = gst_element_get_static_pad(current->parser, "src");
 
 						if (gst_pad_link(aud_src, audio_pad) != GST_PAD_LINK_OK)
-							MX_E("audio parser to muxer link failed");
+							MX_E("audio parser to muxer link failed\n");
 
 						gst_object_unref(GST_OBJECT(aud_src));
 						gst_object_unref(GST_OBJECT(audio_pad));
@@ -817,7 +812,7 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 	case MEDIA_FORMAT_AUDIO:
 		/* Following check is safe but not mandatory. */
 		if ((current->track_index)%NO_OF_TRACK_TYPES != 1) {
-			MX_E("\n\nThis is not an audio track_index. Track_index is not in 3*n+1 format\n\n");
+			MX_E("This is not an audio track_index. Track_index is not in 3*n+1 format\n");
 			goto ERROR;
 		}
 
@@ -915,7 +910,7 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 	case MEDIA_FORMAT_VIDEO:
 		/* Following check is safe but not mandatory. */
 		if ((current->track_index)%NO_OF_TRACK_TYPES != 0) {
-			MX_E("\n\nThis is not an video track_index. Video track_index is not in 3*n format\n\n");
+			MX_E("This is not an video track_index. Video track_index is not in 3*n format\n");
 			goto ERROR;
 		}
 
@@ -1123,7 +1118,7 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 		else if (gst_handle->track_info.track_head) {
 			MX_E("\n\ngst_handle->track_info.track_head->track_index=%d\n", gst_handle->track_info.track_head->track_index);
 			if (gst_handle->track_info.track_head->next)
-				MX_E("\n\next=%p\tnext->track_index=%d\n", gst_handle->track_info.track_head->next, gst_handle->track_info.track_head->next->track_index);
+				MX_E("ext=%p\tnext->track_index=%d\n", gst_handle->track_info.track_head->next, gst_handle->track_info.track_head->next->track_index);
 		} else
 			MX_E("\n\n****Head is NULL****\n");
 		ret = MX_ERROR_INVALID_ARGUMENT;
@@ -1215,7 +1210,7 @@ static int gst_muxer_close_track(MMHandleType pHandle, int track_index)
 			MX_I("\n-----EOS for audioappsrc-----\n");
 			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
 		} else {
-			MX_E("\nInvalid track Index[%d].\n", track_index);
+			MX_E("Invalid track Index[%d].\n", track_index);
 			goto ERROR;
 		}
 	}

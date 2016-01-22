@@ -33,7 +33,7 @@ extern "C" {
 	do { \
 		if (condition) { \
 		} else { \
-			MX_E("[%s] %s(0x%08x)", __FUNCTION__, msg, error); \
+			MX_E("[%s] %s(0x%08x)\n", __FUNCTION__, msg, error); \
 			return error; \
 		} \
 	} while (0)

@@ -189,7 +189,7 @@ static void _mx_ini_check_ini_status(void)
 			     (int)ini_buff.st_size);
 
 			if (g_remove(MEDIAMUXER_INI_DEFAULT_PATH) == -1)
-				MX_E("failed to delete corrupted ini");
+				MX_E("failed to delete corrupted ini\n");
 		}
 	}
 }

@@ -43,14 +43,14 @@ int mediamuxer_create(mediamuxer_h *muxer)
 		memset(handle, 0, sizeof(mediamuxer_s));
 		handle->muxer_state = MEDIAMUXER_STATE_NONE;
 	} else {
-		MX_E("[CoreAPI][%s] MUXER_ERROR_OUT_OF_MEMORY(0x%08x)",
+		MX_E("[CoreAPI][%s] MUXER_ERROR_OUT_OF_MEMORY(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_OUT_OF_MEMORY);
 		return MEDIAMUXER_ERROR_OUT_OF_MEMORY;
 	}
 
 	ret = mx_create(&handle->mx_handle);
 	if (ret != MEDIAMUXER_ERROR_NONE) {
-		MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+		MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 		free(handle);
 		handle = NULL;
@@ -94,7 +94,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {
 		ret = mx_set_data_sink(handle->mx_handle, path, format);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
-			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 			handle->muxer_state = MEDIAMUXER_STATE_NONE;
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
@@ -103,7 +103,7 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 			__FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		handle->muxer_state = MEDIAMUXER_STATE_NONE;
 		ret = MEDIAMUXER_ERROR_INVALID_STATE;
@@ -121,7 +121,7 @@ int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *t
 	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {
 		ret = mx_add_track(handle->mx_handle, media_format, track_index);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
-			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 		} else {
@@ -129,7 +129,7 @@ int mediamuxer_add_track(mediamuxer_h muxer, media_format_h media_format, int *t
 			     handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		ret = MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -145,7 +145,7 @@ int mediamuxer_prepare(mediamuxer_h muxer)
 	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {
 		ret = mx_prepare(handle->mx_handle);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
-			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 		} else {
@@ -153,7 +153,7 @@ int mediamuxer_prepare(mediamuxer_h muxer)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -171,7 +171,7 @@ int mediamuxer_start(mediamuxer_h muxer)
 	if (handle->muxer_state == MEDIAMUXER_STATE_READY) {
 		ret = mx_start(handle->mx_handle);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
-			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 		} else {
@@ -179,7 +179,7 @@ int mediamuxer_start(mediamuxer_h muxer)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -209,7 +209,7 @@ int mediamuxer_write_sample(mediamuxer_h muxer, int track_index, media_packet_h 
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -240,7 +240,7 @@ int mediamuxer_close_track(mediamuxer_h muxer, int track_index)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		ret = MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -266,7 +266,7 @@ int mediamuxer_pause(mediamuxer_h muxer)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -293,7 +293,7 @@ int mediamuxer_resume(mediamuxer_h muxer)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -312,7 +312,7 @@ int mediamuxer_stop(mediamuxer_h muxer)
 		|| handle->muxer_state == MEDIAMUXER_STATE_PAUSED) {
 		ret = mx_stop(handle->mx_handle);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
-			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 		} else {
@@ -320,7 +320,7 @@ int mediamuxer_stop(mediamuxer_h muxer)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -349,7 +349,7 @@ int mediamuxer_unprepare(mediamuxer_h muxer)
 			     __FUNCTION__, handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -368,7 +368,7 @@ int mediamuxer_destroy(mediamuxer_h muxer)
 	if (handle->muxer_state == MEDIAMUXER_STATE_IDLE) {
 		ret = mx_destroy(handle->mx_handle);
 		if (ret != MEDIAMUXER_ERROR_NONE) {
-			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+			MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 			ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 		} else {
@@ -376,7 +376,7 @@ int mediamuxer_destroy(mediamuxer_h muxer)
 			     handle);
 		}
 	} else {
-		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)",
+		MX_E("[CoreAPI][%s] MEDIAMUXER_ERROR_INVALID_STATE(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_STATE);
 		return MEDIAMUXER_ERROR_INVALID_STATE;
 	}
@@ -394,7 +394,7 @@ int mediamuxer_get_state(mediamuxer_h muxer, mediamuxer_state_e *state)
 	if (state != NULL) {
 		*state = handle->muxer_state;
 	} else {
-		MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)",
+		MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 			__FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
 		ret = MEDIAMUXER_ERROR_INVALID_OPERATION;
 	}
