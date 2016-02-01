@@ -79,7 +79,8 @@ typedef enum {
 	MEDIAMUXER_CONTAINER_FORMAT_3GP = MEDIA_FORMAT_CONTAINER_3GP,	/**< The mediamuxer output format is 3GP container */
 	MEDIAMUXER_CONTAINER_FORMAT_WAV = MEDIA_FORMAT_CONTAINER_WAV,	/**< The mediamuxer output format is WAV container */
 	MEDIAMUXER_CONTAINER_FORMAT_AMR_NB = MEDIA_FORMAT_AMR_NB,	/**< The mediamuxer output format is ARM_NB container */
-	MEDIAMUXER_CONTAINER_FORMAT_AMR_WB = MEDIA_FORMAT_AMR_WB	/**< The mediamuxer output format is AMR_WB container */
+	MEDIAMUXER_CONTAINER_FORMAT_AMR_WB = MEDIA_FORMAT_AMR_WB,	/**< The mediamuxer output format is AMR_WB container */
+	MEDIAMUXER_CONTAINER_FORMAT_AAC_ADTS = MEDIA_FORMAT_CONTAINER_AAC_ADTS	/**< The mediamuxer output format is AAC_ADTS container */
 } mediamuxer_output_format_e;
 
 /**

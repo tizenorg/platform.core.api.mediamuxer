@@ -158,6 +158,9 @@ int test_mediamuxer_set_data_sink()
 	} else if (strncmp(data_sink, "42", 2) == 0) {
 		op_uri = "MuxTest_wb.amr";
 		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_AMR_WB);
+	} else if (strncmp(data_sink, "51", 2) == 0) {
+		op_uri = "MuxTest_adts.aac";
+		ret = mediamuxer_set_data_sink(myMuxer, op_uri, MEDIAMUXER_CONTAINER_FORMAT_AAC_ADTS);
 	} else {
 		g_print("Invalid option choosen. Only the displayed options are valid\n");
 		ret = MEDIAMUXER_ERROR_INVALID_PARAMETER;
@@ -198,7 +201,8 @@ int test_mediamuxer_add_track_video()
 		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation\n");
 	} else if (strncmp(data_sink, "31", 2) == 0
-		|| strncmp(data_sink, "41", 2) == 0 || strncmp(data_sink, "42", 2) == 0) {
+		|| strncmp(data_sink, "41", 2) == 0 || strncmp(data_sink, "42", 2) == 0
+		|| strncmp(data_sink, "51", 2) == 0) {
 		g_print("Add video track is invalid for wav/amr\n");
 		return 1;
 	}
@@ -252,6 +256,9 @@ int test_mediamuxer_add_track_audio()
 	} else if (strncmp(data_sink, "42", 2) == 0) {
 		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_WB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_audio_mime operation for amr-wb audio\n");
+	} else if (strncmp(data_sink, "51", 2) == 0) {
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_audio_mime operation for aac-adts audio\n");
 	}
 
 	if (validate_with_codec) {
@@ -481,7 +488,8 @@ static void displaymenu(void)
 		g_print("(11) mp4 (h264+AAC) (12) mp4 (h263+AAC) (13) mp4 (mpeg4+AAC) \
 			\n(21) 3gp (h264+AAC) (22) 3gp (h263+AAC) (23) 3gp (h264+AMR) (23) 3gp (h263+AMR) \
 			\n(31) wav \
-			\n(41) amr-nb (42) amr-wb \n");
+			\n(41) amr-nb (42) amr-wb \
+			\n(51) aac (adts)\n");
 	} else if (g_menu_state == CURRENT_STATUS_RAW_VIDEO_FILENAME) {
 		g_print("*** input raw video file name");
 	} else if (g_menu_state == CURRENT_STATUS_SET_VENC_INFO) {

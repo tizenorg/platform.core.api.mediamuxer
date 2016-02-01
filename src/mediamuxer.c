@@ -86,7 +86,8 @@ int mediamuxer_set_data_sink(mediamuxer_h muxer, char *path, mediamuxer_output_f
 		&& format != MEDIAMUXER_CONTAINER_FORMAT_3GP
 		&& format != MEDIAMUXER_CONTAINER_FORMAT_WAV
 		&& format != MEDIAMUXER_CONTAINER_FORMAT_AMR_NB
-		&& format != MEDIAMUXER_CONTAINER_FORMAT_AMR_WB) {
+		&& format != MEDIAMUXER_CONTAINER_FORMAT_AMR_WB
+		&& format != MEDIAMUXER_CONTAINER_FORMAT_AAC_ADTS) {
 		MX_E("Unsupported Container format: %d \n", format);
 		handle->muxer_state = MEDIAMUXER_STATE_NONE;
 		return MEDIAMUXER_ERROR_INVALID_PARAMETER;
