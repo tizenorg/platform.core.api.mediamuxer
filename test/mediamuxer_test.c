@@ -427,8 +427,8 @@ void _interpret_main_menu(char *cmd)
 			test_mediamuxer_add_track_audio();
 		} else if (strncmp(cmd, "v", 1) == 0) {
 			if (!validate_with_codec) {
-				if ((strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0
-					|| strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0)) {
+				if (strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0
+					|| strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0 || strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
 					have_vid_track = true;
 					if (have_mp4 == false) {
 						g_menu_state = CURRENT_STATUS_MP4_FILENAME;
@@ -437,10 +437,10 @@ void _interpret_main_menu(char *cmd)
 				}
 			}
 			if ((strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0
-				|| strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0))
+				|| strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0)  || strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "24", 2))
 				test_mediamuxer_add_track_video();
 			else
-				g_print("Ignoring, data_sink=%s doesnt need video track testing", data_sink);
+				g_print("Ignoring, data_sink=%s doesnt need video track testing\n", data_sink);
 		} else if (strncmp(cmd, "m", 1) == 0) {
 			test_mediamuxer_write_sample();
 		} else if (strncmp(cmd, "t", 1) == 0) {

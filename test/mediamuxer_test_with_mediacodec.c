@@ -343,7 +343,7 @@ void mediacodec_config_prepare(void)
 
 	for (i = 0; i < g_handle_num; i++) {
 		if (g_media_codec[i] != NULL) {
-			g_print("setting codec callbacks");
+			g_print("setting codec callbacks\n");
 			mediacodec_set_input_buffer_used_cb(g_media_codec[i], _mediacodec_empty_buffer_cb, g_media_codec[i]);
 			mediacodec_set_output_buffer_available_cb(g_media_codec[i], _mediacodec_fill_buffer_cb, g_media_codec[i]);
 			mediacodec_set_eos_cb(g_media_codec[i], _mediacodec_eos_cb, g_media_codec[i]);
