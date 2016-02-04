@@ -141,11 +141,11 @@ static void __audio_app_sink_callback(GstElement *sink, CustomData *data)
 					return;
 				}
 				if (media_format_set_audio_bit(audfmt, 16))
-					g_print("wav media_format_set_audio_bit failed");
+					g_print("wav media_format_set_audio_bit failed\n");
 				if (media_format_set_audio_channel(audfmt, 2))
-					g_print("wav media_format_set_audio_channel failed");
+					g_print("wav media_format_set_audio_channel failed\n");
 				if (media_format_set_audio_samplerate(audfmt, 44100))
-					g_print("wav media_format_set_audio_samplerate failed");
+					g_print("wav media_format_set_audio_samplerate failed\n");
 			} else
 				g_print("Unsupported audio mime\n");
 
@@ -508,7 +508,7 @@ int demux_audio()
 
 	if (access(media_file, F_OK) == -1) {
 		/* wav/amr file doesn't exist */
-		g_print("wav/amr Invalid file path.");
+		g_print("wav/amr Invalid file path.\n");
 		return -1;
 	}
 
@@ -550,7 +550,7 @@ int demux_audio()
 
 	/* we link the elements together */
 	if (!gst_element_link_many(data.source, data.demuxer, data.audioqueue, data.audio_appsink, NULL)) {
-		g_print("Demuxer pipeline link failed");
+		g_print("Demuxer pipeline link failed\n");
 		return -1;
 	}
 
@@ -589,7 +589,7 @@ int demux_mp4()
 
 	if (access(media_file, F_OK) == -1) {
 		/* mp4 file doesn't exist */
-		g_print("mp4 Invalid file path.");
+		g_print("mp4 Invalid file path.\n");
 		return -1;
 	}
 
