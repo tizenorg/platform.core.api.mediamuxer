@@ -38,9 +38,12 @@
 |    GLOBAL VARIABLE DEFINITIONS:                                       |
 ---------------------------------------------------------------------- */
 char *aud_caps, *vid_caps;
+char *text_caps;
 bool aud_eos = 0;
 bool vid_eos = 0;
+bool text_eos = 0;
 extern int track_index_vid, track_index_aud, track_index_aud2;
+extern int track_index_text;
 extern mediamuxer_h myMuxer;
 extern bool validate_multitrack;
 extern char media_file[2048];
@@ -48,8 +51,10 @@ extern char data_sink[2048];
 extern char media_file[2048];
 extern bool have_aud_track;
 extern bool have_vid_track;
+extern bool have_text_track;
 const gchar *new_pad_type_aud = NULL; /* demuxer pad type for audio */
 const gchar *new_pad_type_vid = NULL; /* demuxer pad type for video */
+const gchar *new_pad_type_text = NULL; /* demuxer pad type for subtitle */
 /* demuxer sturcture for demux_mp4() */
 typedef struct _CustomData {
 	GstElement *pipeline;
@@ -57,9 +62,11 @@ typedef struct _CustomData {
 	GstElement *demuxer;
 	GstElement *audioqueue;
 	GstElement *videoqueue;
+	GstElement *textqueue;
 
 	GstElement *audio_appsink;	/* o/p of demuxer */
 	GstElement *video_appsink;
+	GstElement *text_appsink;
 	GstElement *dummysink;
 
 	char *saveLocation_audio;	/* aac stream */
@@ -379,8 +386,10 @@ void __audio_app_sink_eos_callback(GstElement *sink, CustomData *data)
 		mediamuxer_close_track(myMuxer, track_index_aud2);
 	g_print("audio EOS cb reached \n");
 	aud_eos = 1;
-	if (!have_vid_track || vid_eos == 1)
+	if ((!have_vid_track || vid_eos == 1) && (!have_text_track || text_eos == 1)) {
+		g_print("Audio initiated quit_main_loop\n");
 		g_main_loop_quit(data->loop);
+	}
 }
 
 /* demuxer video appsink eos callback */
@@ -389,9 +398,128 @@ static void __video_app_sink_eos_callback(GstElement *sink, CustomData *data)
 	mediamuxer_close_track(myMuxer, track_index_vid);
 	g_print("Encoded video EOS cb reached \n");
 	vid_eos = 1;
-	if (!have_aud_track || aud_eos == 1)
+	if ((!have_aud_track || aud_eos == 1) && (!have_text_track || text_eos == 1)) {
+		g_print("Video initiated quit_main_loop \n");
 		g_main_loop_quit(data->loop);
+	}
 }
+
+/* demuxer text appsink eos callback */
+void __text_app_sink_eos_callback(GstElement *sink, CustomData *data)
+{
+	g_print("__text_app_sink_eos_callback, closing track_index = %d\n", track_index_text);
+	mediamuxer_close_track(myMuxer, track_index_text);
+	g_print("Encoded text EOS cb reached \n");
+	text_eos = 1;
+	if ((!have_vid_track || vid_eos == 1) && (!have_aud_track || aud_eos == 1)) {
+		g_print("Text initiated quit_main_loop \n");
+		g_main_loop_quit(data->loop);
+	}
+}
+
+
+/* Demuxer text-appsink buffer receive callback */
+void __text_app_sink_callback(GstElement *sink, CustomData *data)
+{
+	GstBuffer *buffer;
+	media_format_h textfmt;
+	media_packet_h text_pkt;
+	GstState state;
+	uint64_t ns;
+	int key;
+	static int count = 0;
+	guint8 *dptr;
+	GstMapInfo map;
+	GstSample *sample;
+
+	if (count == 0)
+		g_print("Called __text_app_sink_callback\n");
+
+	gst_element_get_state(data->text_appsink, &state, NULL, GST_CLOCK_TIME_NONE);
+	g_print((state == GST_STATE_PLAYING)? "text_appsink GST_STATE_PLAYING\n" : "text appsink not palying\n");
+
+	g_signal_emit_by_name(sink, "pull-sample", &sample);
+	buffer = gst_sample_get_buffer(sample);
+
+	if (buffer) {
+		if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
+			if (media_format_create(&textfmt)) {
+				g_print("media_format_create(&textfmt) failed\n");
+				return;
+			}
+
+			if (media_format_set_text_mime(textfmt, MEDIA_FORMAT_TEXT_MP4)) {
+				g_print("media_format_set_text_mime failed\n");
+				return;
+			}
+
+			if (!GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DELTA_UNIT)) {
+				/* Key Frame */
+				key = 1;
+			} else {
+				/* Not a Key Frame */
+				key = 0;
+			}
+
+			if (media_packet_create(textfmt, NULL, NULL, &text_pkt)) {
+				g_print("create text media_packet failed\n");
+				return;
+			}
+
+			if (media_packet_alloc(text_pkt)) {
+				g_print("text media_packet_alloc failed\n");
+				return;
+			}
+
+			media_packet_get_buffer_data_ptr(text_pkt, (void**)&dptr);
+			memcpy((char*)dptr, map.data, map.size);
+
+			if (media_packet_set_buffer_size(text_pkt, (uint64_t)(map.size))) {
+				g_print("text set_buffer_size failed\n");
+				return;
+			}
+
+			if (media_packet_get_buffer_size(text_pkt, &ns)) {
+				g_print("unable to get the buffer size actual");
+				return;
+			}
+
+			if (media_packet_set_codec_data(text_pkt, text_caps, strlen(text_caps)+1)) {
+				g_print("unable to set the text codec data e\n");
+				return;
+			}
+
+			if (media_packet_set_pts(text_pkt, buffer->pts)) {
+				g_print("unable to set the pts\n");
+				return;
+			}
+
+			if (media_packet_set_dts(text_pkt, buffer->dts)) {
+				g_print("unable to set the dts\n");
+				return;
+			}
+
+			if (media_packet_set_duration(text_pkt, buffer->duration)) {
+				g_print("unable to set the duration\n");
+				return;
+			}
+
+			if (media_packet_set_flags(text_pkt, key)) {
+				g_print("unable to set the flag size\n");
+				return;
+			}
+
+			/* Print count and size to indicate a received buffer */
+			g_print("Received text buffer count : %4d (size : %5"PRIu64", pts : %12"PRIu64")\n",
+					++count, ns, buffer->pts);
+
+			mediamuxer_write_sample(myMuxer, track_index_text, text_pkt);
+			media_packet_destroy(text_pkt);
+		}
+	}
+
+}
+
 
 /* demuxer on_pad callback */
 static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
@@ -399,8 +527,10 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 	GstPadLinkReturn ret;
 	GstPad *sink_pad_audioqueue = gst_element_get_static_pad(data->audioqueue, "sink");
 	GstPad *sink_pad_videoqueue = gst_element_get_static_pad(data->videoqueue, "sink");
+	GstPad *sink_pad_textqueue = gst_element_get_static_pad(data->textqueue, "sink");
 	GstCaps *new_pad_aud_caps = NULL;
 	GstCaps *new_pad_vid_caps = NULL;
+	GstCaps *new_pad_text_caps = NULL;
 	GstCaps *new_pad_caps = NULL;
 	GstStructure *new_pad_struct = NULL;
 	const gchar *new_pad_type = NULL;
@@ -454,8 +584,28 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 		/* Link videoqueue->audio_appsink and save/Give to appsrc of muxer */
 		gst_element_set_state(data->video_appsink, GST_STATE_PLAYING);
 		/* one has to set the newly added element to the same state as the rest of the elements. */
+	} else if (have_text_track && g_str_has_prefix(new_pad_type, "text/x-raw")) {
+		new_pad_text_caps = gst_pad_get_current_caps(pad);
+		caps = gst_caps_to_string(new_pad_text_caps);
+		g_print("Subtitle caps :%s\n", caps);
+		text_caps = caps;
+
+		/* Link demuxer-pad with textqueue */
+		ret = gst_pad_link(pad, sink_pad_textqueue);
+		if (GST_PAD_LINK_FAILED(ret))
+			g_print("Type is '%s' but link failed.\n", new_pad_type);
+		else
+			g_print("Link succeeded (type '%s').\n", new_pad_type);
+		new_pad_type_text = new_pad_type;
+		gst_element_link(data->textqueue, data->text_appsink);
+		g_object_set(data->text_appsink, "emit-signals", TRUE, NULL);
+		g_signal_connect(data->text_appsink, "new-sample", G_CALLBACK(__text_app_sink_callback), data);
+		g_signal_connect(data->text_appsink, "eos", G_CALLBACK(__text_app_sink_eos_callback), data);
+		/* Link textqueue->text_appsink and save/Give to appsrc of muxer */
+		gst_element_set_state(data->text_appsink, GST_STATE_PLAYING);
+		/* one has to set the newly added element to the same state as the rest of the elements. */
 	} else {
-		g_print(" It has type '%s' which is not raw A/V. Ignoring.\n", new_pad_type);
+		g_print(" It has type '%s' which is not raw A/V/Subs. Ignoring.\n", new_pad_type);
 		goto exit;
 	}
 
@@ -465,6 +615,7 @@ exit:
 
 	gst_object_unref(sink_pad_audioqueue);
 	gst_object_unref(sink_pad_videoqueue);
+	gst_object_unref(sink_pad_textqueue);
 }
 
 /* Demuxer bus_call */
@@ -603,13 +754,16 @@ int demux_mp4()
 	data.demuxer = gst_element_factory_make("qtdemux", "mp4-demuxer");
 	data.audioqueue = gst_element_factory_make("queue", "audio-queue");
 	data.videoqueue = gst_element_factory_make("queue", "video-queue");
+	data.textqueue = gst_element_factory_make("queue", "subtitle-queue");
 
 	data.dummysink = gst_element_factory_make("fakesink", "fakesink");
 	data.video_appsink = gst_element_factory_make("appsink", "encoded_video_appsink");
 	data.audio_appsink = gst_element_factory_make("appsink", "encoded_audio_appsink");
+	data.text_appsink = gst_element_factory_make("appsink", "text_appsink");
 
 	if (!data.pipeline || !data.source || !data.demuxer || !data.audioqueue
-		|| !data.dummysink || !data.videoqueue || !data.audio_appsink || !data.video_appsink) {
+		|| !data.dummysink || !data.videoqueue || !data.audio_appsink || !data.video_appsink
+		|| !data.textqueue || !data.text_appsink) {
 		g_print("Test-Suite: One gst-element can't be created. Exiting\n");
 		return -1;
 	}
@@ -621,7 +775,7 @@ int demux_mp4()
 
 	/* Add gstreamer-elements into gst-pipeline */
 	gst_bin_add_many(GST_BIN(data.pipeline), data.source, data.demuxer, data.dummysink, \
-		data.audioqueue, data.videoqueue, data.audio_appsink, data.video_appsink, NULL);
+		      data.audioqueue, data.videoqueue, data.audio_appsink, data.video_appsink, data.textqueue, data.text_appsink, NULL);
 
 	/* we set the input filename to the source element */
 	g_object_set(G_OBJECT(data.source), "location", media_file, NULL);

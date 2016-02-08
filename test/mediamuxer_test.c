@@ -68,6 +68,7 @@ enum {
 mediamuxer_h myMuxer = 0;
 media_format_h media_format = NULL;
 media_format_h media_format_a = NULL;
+media_format_h media_format_t = NULL;
 media_format_h input_fmt = NULL;
 
 #if DUMP_OUTBUF
@@ -99,9 +100,11 @@ char data_sink[MAX_INPUT_SIZE];
 bool have_mp4 = false;
 bool have_vid_track = false;
 bool have_aud_track = false;
+bool have_text_track = false;
 int track_index_vid = -1;
 int track_index_aud = -1;
 int track_index_aud2 = -1;
+int track_index_text = -1;
 int g_menu_state = CURRENT_STATUS_MAINMENU;
 
 int demux_mp4();
@@ -293,6 +296,34 @@ int test_mediamuxer_add_track_audio()
 	return 0;
 }
 
+int test_mediamuxer_add_track_text()
+{
+	media_format_mimetype_e mimetype;
+	media_format_text_type_e text_type;
+
+	g_print("test_mediamuxer_text_track_text\n");
+	media_format_create(&media_format_t);
+
+	if (strncmp(data_sink, "11", 1) == 0 || strncmp(data_sink, "12", 1) == 0
+		|| strncmp(data_sink, "13", 1) == 0) {
+		if (media_format_set_text_mime(media_format_t, MEDIA_FORMAT_TEXT_MP4) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+			g_print("Problem during media_format_set_text_mime operation in MP4\n");
+	} else {
+		g_print("Currently text is not supported for this format\n");
+		return 0;
+	}
+
+	media_format_get_text_info(media_format_t, &mimetype, &text_type);
+
+	g_print("Text Mimetype trying to set: %x (text : %x), type = %x\n", (int)(mimetype), (int)(MEDIA_FORMAT_TEXT_MP4), text_type);
+
+	/* To add text track */
+	mediamuxer_add_track(myMuxer, media_format_t, &track_index_text);
+
+	g_print("Text Track index returned is: %d\n", track_index_text);
+	return 0;
+}
+
 int test_mediamuxer_prepare()
 {
 	g_print("test_mediamuxer_prepare\n");
@@ -441,6 +472,15 @@ void _interpret_main_menu(char *cmd)
 				test_mediamuxer_add_track_video();
 			else
 				g_print("Ignoring, data_sink=%s doesnt need video track testing\n", data_sink);
+		} else if (strncmp(cmd, "x", 1) == 0) {
+			if (!validate_with_codec) {
+				have_text_track = true;
+				if (have_mp4 == false) {
+					g_menu_state = CURRENT_STATUS_MP4_FILENAME;
+					have_mp4 = true;
+				}
+			}
+			test_mediamuxer_add_track_text();
 		} else if (strncmp(cmd, "m", 1) == 0) {
 			test_mediamuxer_write_sample();
 		} else if (strncmp(cmd, "t", 1) == 0) {
@@ -634,7 +674,8 @@ static void display_sub_basic()
 	g_print("c. Create \t");
 	g_print("o. Set Data Sink \n");
 	g_print("a. AddAudioTrack \t");
-	g_print("v. AddVideoTrack \n");
+	g_print("v. AddVideoTrack \t");
+	g_print("x. AddTextTrack \n");
 	g_print("e. Prepare \t");
 	g_print("s. Start \n");
 	g_print("m. StartMuxing \n");
