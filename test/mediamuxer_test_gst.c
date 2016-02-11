@@ -38,7 +38,7 @@
 |    GLOBAL VARIABLE DEFINITIONS:                                       |
 ---------------------------------------------------------------------- */
 char *aud_caps, *vid_caps;
-char *text_caps;
+char *sub_caps;
 bool aud_eos = 0;
 bool vid_eos = 0;
 bool text_eos = 0;
@@ -484,7 +484,7 @@ void __text_app_sink_callback(GstElement *sink, CustomData *data)
 				return;
 			}
 
-			if (media_packet_set_codec_data(text_pkt, text_caps, strlen(text_caps)+1)) {
+			if (media_packet_set_codec_data(text_pkt, sub_caps, strlen(sub_caps)+1)) {
 				g_print("unable to set the text codec data e\n");
 				return;
 			}
@@ -530,7 +530,7 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 	GstPad *sink_pad_textqueue = gst_element_get_static_pad(data->textqueue, "sink");
 	GstCaps *new_pad_aud_caps = NULL;
 	GstCaps *new_pad_vid_caps = NULL;
-	GstCaps *new_pad_text_caps = NULL;
+	GstCaps *new_pad_sub_caps = NULL;
 	GstCaps *new_pad_caps = NULL;
 	GstStructure *new_pad_struct = NULL;
 	const gchar *new_pad_type = NULL;
@@ -585,10 +585,10 @@ static void __on_pad_added(GstElement *element, GstPad *pad, CustomData *data)
 		gst_element_set_state(data->video_appsink, GST_STATE_PLAYING);
 		/* one has to set the newly added element to the same state as the rest of the elements. */
 	} else if (have_text_track && g_str_has_prefix(new_pad_type, "text/x-raw")) {
-		new_pad_text_caps = gst_pad_get_current_caps(pad);
-		caps = gst_caps_to_string(new_pad_text_caps);
+		new_pad_sub_caps = gst_pad_get_current_caps(pad);
+		caps = gst_caps_to_string(new_pad_sub_caps);
 		g_print("Subtitle caps :%s\n", caps);
-		text_caps = caps;
+		sub_caps = caps;
 
 		/* Link demuxer-pad with textqueue */
 		ret = gst_pad_link(pad, sink_pad_textqueue);

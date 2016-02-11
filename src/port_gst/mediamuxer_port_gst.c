@@ -213,15 +213,16 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		}
 	} else if (media_format_get_text_info(media_format, &mimetype, &text_type_e) !=
 		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
-		if (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
-				&& (mimetype == MEDIA_FORMAT_TEXT_MP4)) {
+		if ((mimetype == MEDIA_FORMAT_TEXT_MP4)
+			&& (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
+			|| mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP)) {
 
 			current->track_index = 2 + NO_OF_TRACK_TYPES*(mx_handle_gst->track_info.subtitle_track_cnt);
 			(mx_handle_gst->track_info.subtitle_track_cnt)++;
 			(mx_handle_gst->track_info.total_track_cnt)++;
 			*track_index = current->track_index;
 
-			MX_I("Text track added successfully: %p, with head: %p \n",
+			MX_I("Subtitle track added successfully: %p, with head: %p \n",
 				current->media_format, mx_handle_gst->track_info.track_head->media_format);
 		} else {
 			MX_E("Unsupported/Mismatched subtitle MIME Type: %x\n", mimetype);
@@ -386,14 +387,14 @@ static void _video_start_feed(GstElement *source, guint size, mx_gst_track *curr
 		MX_I("Video start feed called, however, current is null\n");
 }
 
-static void _text_start_feed(GstElement *source, guint size, mx_gst_track *current)
+static void _subtitle_start_feed(GstElement *source, guint size, mx_gst_track *current)
 {
 	if (current) {
 		MX_I("Subtitle Start feeding cb... current->track_index = %d\n", current->track_index);
 		current->stop_feed = 0;
 		current->start_feed = 1;
 	} else
-		MX_I("Text start feed called, however, current is null\n");
+		MX_I("Subtitle start feed called, however, current is null\n");
 }
 
 
@@ -421,14 +422,14 @@ static void _video_stop_feed(GstElement *source, mx_gst_track *current)
 		MX_I("Video stop feed called, however, current is null\n");
 }
 
-static void _text_stop_feed(GstElement *source, mx_gst_track *current)
+static void _subtitle_stop_feed(GstElement *source, mx_gst_track *current)
 {
 	if (current) {
-		MX_I("\nText Stop feeding... current->track_index = %d\n", current->track_index);
+		MX_I("\nSubtitle Stop feeding... current->track_index = %d\n", current->track_index);
 		current->stop_feed = 1;
 		current->start_feed = 0;
 	} else
-		MX_I("Text stop feed called, however, current is null\n");
+		MX_I("Subtitle stop feed called, however, current is null\n");
 }
 
 
@@ -439,7 +440,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 	GstBus *bus = NULL;
 	/* Note: Use a loop, if needed. GMainLoop *loop; */
 	GstPad *audio_pad, *video_pad, *aud_src, *vid_src;
-	GstPad *text_pad, *text_src;
+	GstPad *subtitle_pad, *subtitle_src;
 	char str_appsrc[MAX_STRING_LENGTH];
 	char str_parser[MAX_STRING_LENGTH];
 	char track_no[MAX_STRING_LENGTH];
@@ -637,7 +638,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 			}
 		}
 
-		if (gst_handle->track_info.subtitle_track_cnt) { /* Text track(s) exist */
+		if (gst_handle->track_info.subtitle_track_cnt) { /* Subtitle track(s) exist */
 			for (current = gst_handle->track_info.track_head; current; current = current->next) {
 				if (current->track_index%NO_OF_TRACK_TYPES == 2) {
 
@@ -654,29 +655,29 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, NULL);
 
-					/* Set text caps for corresponding src elements */
+					/* Set subtitle_caps for corresponding src elements */
 					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
 					g_object_set (current->appsrc, "format", GST_FORMAT_TIME, NULL);
 
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent functions to each track */
-					MX_I("\nRegistering text callback for cur->tr_ind = %d\n", current->track_index);
-					g_signal_connect(current->appsrc, "need-data", G_CALLBACK(_text_start_feed), current);
-					g_signal_connect(current->appsrc, "enough-data", G_CALLBACK(_text_stop_feed), current);
+					MX_I("\nRegistering subtitle callback for cur->tr_ind = %d\n", current->track_index);
+					g_signal_connect(current->appsrc, "need-data", G_CALLBACK(_subtitle_start_feed), current);
+					g_signal_connect(current->appsrc, "enough-data", G_CALLBACK(_subtitle_stop_feed), current);
 #else
 					g_object_set(current->appsrc, "block", TRUE, NULL);
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc, GST_APP_STREAM_TYPE_STREAM);
 #endif
 
 					snprintf(track_no, MAX_STRING_LENGTH, "subtitle_%.2d", text_track_cnt++);  /* snprintf(track_no,"subtitle_00"); */
-					text_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
-					text_src = gst_element_get_static_pad(current->appsrc, "src");
+					subtitle_pad = gst_element_get_request_pad(gst_handle->muxer, track_no);
+					subtitle_src = gst_element_get_static_pad(current->appsrc, "src");
 					MX_I("Linking subtitle-appsrc to muxersubtitle static-pad\n");
-					if (gst_pad_link(text_src, text_pad) != GST_PAD_LINK_OK)
-						MX_E("text_src and text_pad link failed");
+					if (gst_pad_link(subtitle_src, subtitle_pad) != GST_PAD_LINK_OK)
+						MX_E("subtitle_src and subtitle_pad link failed");
 
-					gst_object_unref(GST_OBJECT(text_src));
-					gst_object_unref(GST_OBJECT(text_pad));
+					gst_object_unref(GST_OBJECT(subtitle_src));
+					gst_object_unref(GST_OBJECT(subtitle_pad));
 				}
 			}
 		}
@@ -1122,7 +1123,7 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			ret = MX_ERROR_UNKNOWN;
 			break;
 		}
-		MX_I("codec data for text = %s size is %d\n", codec_data, codec_data_size);
+		MX_I("codec data for subtitle = %s size is %d\n", codec_data, codec_data_size);
 		if (current->caps == NULL ||
 		    g_strcmp0(codec_data, current->caps) != 0) {
 
@@ -1385,13 +1386,13 @@ static int gst_muxer_close_track(MMHandleType pHandle, int track_index)
 	MX_I("__gst_muxer_stop setting eos to sources:%p\n", gst_handle);
 	if (gst_handle->pipeline != NULL) {
 		if (track_index%NO_OF_TRACK_TYPES == 0) {
-			MX_I("\n-----EOS for videoappsrc-----\n");
+			MX_I("\n-----EOS for video-appsrc-----\n");
 			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
 		} else if (track_index%NO_OF_TRACK_TYPES == 1) {
-			MX_I("\n-----EOS for audioappsrc-----\n");
+			MX_I("\n-----EOS for audio-appsrc-----\n");
 			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
 		} else if (track_index%NO_OF_TRACK_TYPES == 2) {
-			MX_I("\n-----EOS for textappsrc-----\n");
+			MX_I("\n-----EOS for subtitle-appsrc-----\n");
 			gst_app_src_end_of_stream((GstAppSrc *)(current->appsrc));
 		} else {
 			MX_E("Invalid track Index[%d].\n", track_index);
