@@ -296,7 +296,7 @@ int test_mediamuxer_add_track_audio()
 	return 0;
 }
 
-int test_mediamuxer_add_track_text()
+int test_mediamuxer_add_track_subtitle()
 {
 	media_format_mimetype_e mimetype;
 	media_format_text_type_e text_type;
@@ -305,7 +305,9 @@ int test_mediamuxer_add_track_text()
 	media_format_create(&media_format_t);
 
 	if (strncmp(data_sink, "11", 1) == 0 || strncmp(data_sink, "12", 1) == 0
-		|| strncmp(data_sink, "13", 1) == 0) {
+		|| strncmp(data_sink, "13", 1) == 0
+		|| strncmp(data_sink, "21", 1) == 0 || strncmp(data_sink, "22", 1) == 0
+		|| strncmp(data_sink, "23", 1) == 0 || strncmp(data_sink, "24", 1) == 0) {
 		if (media_format_set_text_mime(media_format_t, MEDIA_FORMAT_TEXT_MP4) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
 			g_print("Problem during media_format_set_text_mime operation in MP4\n");
 	} else {
@@ -480,7 +482,7 @@ void _interpret_main_menu(char *cmd)
 					have_mp4 = true;
 				}
 			}
-			test_mediamuxer_add_track_text();
+			test_mediamuxer_add_track_subtitle();
 		} else if (strncmp(cmd, "m", 1) == 0) {
 			test_mediamuxer_write_sample();
 		} else if (strncmp(cmd, "t", 1) == 0) {
