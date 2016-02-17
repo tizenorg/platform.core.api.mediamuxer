@@ -165,8 +165,8 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		last->next = current;
 	}
 
-	if (media_format_get_video_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
-		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+	if (media_format_get_video_info(media_format, &mimetype, NULL, NULL, NULL, NULL)
+		== MEDIA_FORMAT_ERROR_NONE) {
 		if ((mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
 				&& (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP
 				|| mimetype == MEDIA_FORMAT_H263
@@ -185,8 +185,8 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		}  else {
 			MX_E("Unsupported/Mismatched video MIME Type: %x\n", mimetype);
 		}
-	} else if (media_format_get_audio_info(media_format, &mimetype, NULL, NULL, NULL, NULL) !=
-		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+	} else if (media_format_get_audio_info(media_format, &mimetype, NULL, NULL, NULL, NULL) ==
+		MEDIA_FORMAT_ERROR_NONE) {
 		if ((mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
 				&& (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS))
 			|| (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP
@@ -211,8 +211,8 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 		} else {
 			MX_E("Unsupported/Mismatched audio MIME Type: %x\n", mimetype);
 		}
-	} else if (media_format_get_text_info(media_format, &mimetype, &text_type_e) !=
-		MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+	} else if (media_format_get_text_info(media_format, &mimetype, &text_type_e)
+		== MEDIA_FORMAT_ERROR_NONE) {
 		if ((mimetype == MEDIA_FORMAT_TEXT_MP4)
 			&& (mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4
 			|| mx_handle_gst->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP)) {
@@ -507,7 +507,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 
 					if (media_format_get_video_info((media_format_h)(current->media_format), &mimetype, NULL, NULL, NULL, NULL)
-						!= MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+						== MEDIA_FORMAT_ERROR_NONE) {
 							if (mimetype == MEDIA_FORMAT_H264_SP  || mimetype == MEDIA_FORMAT_H264_MP || mimetype == MEDIA_FORMAT_H264_HP)
 								current->parser = gst_element_factory_make("h264parse", str_parser);
 							else if (mimetype == MEDIA_FORMAT_H263 || mimetype == MEDIA_FORMAT_H263P)
@@ -566,8 +566,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 					current->appsrc = gst_element_factory_make("appsrc", str_appsrc);
 
-					if (media_format_get_audio_info((media_format_h)(current->media_format), &mimetype, NULL, NULL, NULL, NULL) !=
-						MEDIA_FORMAT_ERROR_INVALID_OPERATION) {
+					if (media_format_get_audio_info((media_format_h)(current->media_format), &mimetype, NULL, NULL, NULL, NULL) ==
+						MEDIA_FORMAT_ERROR_NONE) {
 						if (mimetype == MEDIA_FORMAT_AAC_LC || mimetype == MEDIA_FORMAT_AAC_HE || mimetype == MEDIA_FORMAT_AAC_HE_PS)
 							current->parser = gst_element_factory_make("aacparse", str_parser);
 						 else if (mimetype == MEDIA_FORMAT_PCM

@@ -189,19 +189,19 @@ int test_mediamuxer_add_track_video()
 
 	/* MEDIA_FORMAT_H264_SP  MEDIA_FORMAT_H264_MP  MEDIA_FORMAT_H264_HP */
 	if (strncmp(data_sink, "11", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation\n");
 	} else if (strncmp(data_sink, "12", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation\n");
 	}  else if (strncmp(data_sink, "13", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_MPEG4_SP) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_MPEG4_SP) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation\n");
 	} else if (strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "23", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation\n");
 	} else if (strncmp(data_sink, "22", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation\n");
 	} else if (strncmp(data_sink, "31", 2) == 0
 		|| strncmp(data_sink, "41", 2) == 0 || strncmp(data_sink, "42", 2) == 0
@@ -242,36 +242,36 @@ int test_mediamuxer_add_track_audio()
 
 	if (strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0) {
 		/* MEDIA_FORMAT_AAC_LC  MEDIA_FORMAT_AAC_HE  MEDIA_FORMAT_AAC_HE_PS */
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation, for AAC in MP4\n");
 	} else if (strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation, for AAC in 3GP\n");
 	} else if (strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation for AMR_NB in 3GP\n");
 	} else if (strncmp(data_sink, "31", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_PCM) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_PCM) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation for PCM in WAV\n");
 	} else if (strncmp(data_sink, "41", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation for amr-nb audio\n");
 	} else if (strncmp(data_sink, "42", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_WB) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_WB) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation for amr-wb audio\n");
 	} else if (strncmp(data_sink, "51", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_mime operation for aac-adts audio\n");
 	}
 
 	if (validate_with_codec) {
-		if (media_format_set_audio_channel(media_format_a, channel) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_channel(media_format_a, channel) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_channel operation\n");
 		media_format_set_audio_samplerate(media_format_a, samplerate);
 		media_format_set_audio_bit(media_format_a, bit);
 		media_format_set_audio_avg_bps(media_format_a, bitrate);
 	} else {
-		if (media_format_set_audio_channel(media_format_a, 2) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_audio_channel(media_format_a, 2) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_audio_channel operation\n");
 		media_format_set_audio_samplerate(media_format_a, 44100);
 		media_format_set_audio_bit(media_format_a, 16);
@@ -308,7 +308,7 @@ int test_mediamuxer_add_track_subtitle()
 		|| strncmp(data_sink, "13", 1) == 0
 		|| strncmp(data_sink, "21", 1) == 0 || strncmp(data_sink, "22", 1) == 0
 		|| strncmp(data_sink, "23", 1) == 0 || strncmp(data_sink, "24", 1) == 0) {
-		if (media_format_set_text_mime(media_format_t, MEDIA_FORMAT_TEXT_MP4) == MEDIA_FORMAT_ERROR_INVALID_OPERATION)
+		if (media_format_set_text_mime(media_format_t, MEDIA_FORMAT_TEXT_MP4) != MEDIA_FORMAT_ERROR_NONE)
 			g_print("Problem during media_format_set_text_mime operation in MP4\n");
 	} else {
 		g_print("Currently text is not supported for this format\n");
