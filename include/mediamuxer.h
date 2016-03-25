@@ -33,7 +33,7 @@ extern "C" {
 
 /**
 * @addtogroup CAPI_MEDIAMUXER_MODULE
-* @
+* @{
 */
 
 /**
