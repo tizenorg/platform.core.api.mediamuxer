@@ -607,7 +607,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 						G_CALLBACK(_audio_start_feed), current);
 					g_signal_connect(current->appsrc, "enough-data",
 						G_CALLBACK(_audio_stop_feed), current);
-					g_object_set (current->appsrc, "format", GST_FORMAT_TIME, NULL);
+					g_object_set(current->appsrc, "format", GST_FORMAT_TIME, NULL);
 #else
 					g_object_set(current->appsrc, "block", TRUE, NULL);
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
@@ -657,7 +657,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 					/* Set subtitle_caps for corresponding src elements */
 					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
-					g_object_set (current->appsrc, "format", GST_FORMAT_TIME, NULL);
+					g_object_set(current->appsrc, "format", GST_FORMAT_TIME, NULL);
 
 #ifdef ASYCHRONOUS_WRITE
 					/* ToDo: Use a function pointer, and create independent functions to each track */
@@ -1179,8 +1179,9 @@ int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
 			g_object_set(current->appsrc, "caps", new_cap, NULL);
 #endif
 			gst_caps_unref(new_cap);
-		} else if (current != NULL)
-			MX_I("appsrc caps already set to %s\n",current->caps);
+		} else if (current != NULL) {
+			MX_I("appsrc caps already set to %s\n", current->caps);
+		}
 		break;
 
 	case MEDIA_FORMAT_CONTAINER:

@@ -275,7 +275,7 @@ static void __video_app_sink_callback(GstElement *sink, CustomData *data)
 					return;
 				}
 			} else if (g_str_has_prefix(new_pad_type_vid, "video/mpeg")
-				&& strncmp(data_sink, "13", 2) == 0  ) {
+				&& strncmp(data_sink, "13", 2) == 0) {
 				g_print("For mpeg4, setting encoded media type as MEDIA_FORMAT_MPEG4_SP\n");
 				if (media_format_set_video_mime(vidfmt, MEDIA_FORMAT_MPEG4_SP)) {
 					g_print("media_format_set_video_mime to MPEG4_SP failed\n");
@@ -436,7 +436,7 @@ void __text_app_sink_callback(GstElement *sink, CustomData *data)
 		g_print("Called __text_app_sink_callback\n");
 
 	gst_element_get_state(data->text_appsink, &state, NULL, GST_CLOCK_TIME_NONE);
-	g_print((state == GST_STATE_PLAYING)? "text_appsink GST_STATE_PLAYING\n" : "text appsink not palying\n");
+	g_print((state == GST_STATE_PLAYING) ? "text_appsink GST_STATE_PLAYING\n" : "text appsink not palying\n");
 
 	g_signal_emit_by_name(sink, "pull-sample", &sample);
 	buffer = gst_sample_get_buffer(sample);
