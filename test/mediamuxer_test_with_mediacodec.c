@@ -125,7 +125,7 @@ void input_raw_filepath(char *filename)
 	int len = strlen(filename);
 	int i = 0;
 
-	if (len < 0 || len > MAX_STRING_LEN)
+	if (len <= 0 || len > MAX_STRING_LEN)
 		return;
 
 	for (i = 0; i < g_handle_num; i++) {
