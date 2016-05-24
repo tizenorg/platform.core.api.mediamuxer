@@ -77,7 +77,6 @@ FILE *fp_in = NULL;
 bool validate_dump = false;
 #endif
 
-GQueue input_available;
 int use_video = 1;   /* 1 to test video with codec,   0 for audio */
 int use_encoder = 1;
 media_format_mimetype_e mimetype;
