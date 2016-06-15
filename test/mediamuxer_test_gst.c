@@ -650,7 +650,7 @@ static gboolean __bus_call(GstBus *bus, GstMessage *mesg, gpointer data)
 /* Demux audio (wav/amr) file and generate raw data */
 int demux_audio()
 {
-	CustomData data;
+	CustomData data = {0, };
 	GMainLoop *loop_dmx;
 	GstBus *bus;
 	guint watch_id_for_bus;
