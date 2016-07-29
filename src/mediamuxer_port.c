@@ -25,19 +25,19 @@
 #include <mediamuxer_port.h>
 
 /* function type */
-extern int gst_port_register(media_port_muxer_ops *pOps);
-extern int ffmpeg_port_register(media_port_muxer_ops *pOps);
-extern int custom_port_register(media_port_muxer_ops *pOps);
+extern int gst_mediamuxer_port_register(media_port_muxer_ops *pOps);
+extern int ffmpeg_mediamuxer_port_register(media_port_muxer_ops *pOps);
+extern int custom_mediamuxer_port_register(media_port_muxer_ops *pOps);
 
 /*
   * Sequence of functions should be same as the port enumeration "port_mode"
   * in mx_ini.h file
   */
-typedef int (*register_port)(media_port_muxer_ops *);
-register_port register_port_func[] = {
-	&gst_port_register,
-	&ffmpeg_port_register,
-	&custom_port_register
+typedef int (*register_port_muxer)(media_port_muxer_ops *);
+register_port_muxer register_port_muxer_func[] = {
+	&gst_mediamuxer_port_register,
+	&ffmpeg_mediamuxer_port_register,
+	&custom_mediamuxer_port_register
 };
 
 int mx_create(MMHandleType *muxer)
@@ -68,7 +68,7 @@ int mx_create(MMHandleType *muxer)
 		goto ERROR;
 	}
 
-	register_port_func[new_muxer->ini.port_type](pOps);
+	register_port_muxer_func[new_muxer->ini.port_type](pOps);
 	ret = pOps->init(&new_muxer->mxport_handle);
 	MEDIAMUXER_CHECK_SET_AND_PRINT(ret, MX_ERROR_NONE, ret,
 					MX_NOT_INITIALIZED, "mx_create failed");

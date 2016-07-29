@@ -31,7 +31,7 @@ static media_port_muxer_ops def_mux_ops = {
 	.set_data_sink = ffmpeg_muxer_set_data_sink,
 };
 
-int ffmpeg_port_register(media_port_muxer_ops *pOps)
+int ffmpeg_mediamuxer_port_register(media_port_muxer_ops *pOps)
 {
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_FENTER();

@@ -61,7 +61,7 @@ static media_port_muxer_ops def_mux_ops = {
 	.set_error_cb = gst_set_error_cb,
 };
 
-int gst_port_register(media_port_muxer_ops *pOps)
+int gst_mediamuxer_port_register(media_port_muxer_ops *pOps)
 {
 	int ret = MX_ERROR_NONE;
 	MEDIAMUXER_FENTER();
