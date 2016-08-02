@@ -81,15 +81,15 @@ typedef enum {
 
 typedef struct _mediamuxer_s {
 	MMHandleType mx_handle;
-	const void *user_cb[MEDIAMUXER_EVENT_TYPE_NUM];
-	void *user_data[MEDIAMUXER_EVENT_TYPE_NUM];
-	void *display_handle;
-	int state;
-	bool is_set_pixmap_cb;
+//	const void *user_cb[MEDIAMUXER_EVENT_TYPE_NUM];
+//	void *user_data[MEDIAMUXER_EVENT_TYPE_NUM];
+//	void *display_handle;
+	mediamuxer_state_e state;
+//	bool is_set_pixmap_cb;
 	bool is_stopped;
-	bool is_display_visible;
-	bool is_progressive_download;
-	pthread_t prepare_async_thread;
+//	bool is_display_visible;
+//	bool is_progressive_download;
+//	pthread_t prepare_async_thread;
 	mediamuxer_error_cb error_cb;
 	void* error_cb_userdata;
 	mediamuxer_state_e muxer_state;

@@ -47,7 +47,7 @@ typedef enum {
 /* GST port Private data */
 typedef struct _mx_gst_track {
 	void *media_format;
-	char *caps;
+	GstCaps *caps;
 	int track_index;
 	int start_feed;
 	int stop_feed;
@@ -91,7 +91,7 @@ typedef struct _mxgst_handle_t {
  * @see mediamuxer_set_error_cb()
  * @see mediamuxer_unset_error_cb()
  */
-typedef void (*gst_error_cb)(mediamuxer_error_e error, void *user_data);
+typedef void (*gst_muxer_error_cb)(mediamuxer_error_e error, void *user_data);
 
 #ifdef __cplusplus
 }

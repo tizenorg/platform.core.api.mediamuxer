@@ -31,8 +31,10 @@
 #include <mediamuxer.h>
 #include <mediamuxer_private.h>
 #include <media_packet_internal.h>
-
+#include <media_format.h>
 #include <media_codec.h>
+#include <mediademuxer.h>
+
 #define DUMP_OUTBUF 1
 /*-----------------------------------------------------------------------
 |    GLOBAL VARIABLE DEFINITIONS:                                       |
@@ -63,6 +65,8 @@ enum {
 	CURRENT_STATUS_RAW_AUDIO_FILENAME,
 	CURRENT_STATUS_SET_VENC_INFO,
 	CURRENT_STATUS_SET_AENC_INFO,
+	CURRENT_STATUS_FILENAME,
+	CURRENT_STATUS_PREPARE_DEMUXER,
 };
 
 mediamuxer_h myMuxer = 0;
@@ -94,6 +98,7 @@ static int bitrate = DEFAULT_BITRATE;
 int iseos_codec = 0;
 bool validate_with_codec = false;
 bool validate_multitrack = false;
+bool validate_with_demux = false;
 char media_file[MAX_INPUT_SIZE];
 char data_sink[MAX_INPUT_SIZE];
 bool have_mp4 = false;
@@ -106,6 +111,11 @@ int track_index_aud2 = -1;
 int track_index_text = -1;
 int g_menu_state = CURRENT_STATUS_MAINMENU;
 
+int demuxer_index_vid = -1;
+int demuxer_index_aud = -1;
+bool is_video = false;
+bool is_audio = false;
+
 int demux_mp4();
 int demux_audio();
 static void display_sub_basic();
@@ -115,6 +125,16 @@ void mediacodec_config_set_codec(int codecid, int flag);
 void mediacodec_config_set_venc_info(int width, int height, float fps, int target_bits);
 void mediacodec_config_prepare(void);
 void mediacodec_config_set_aenc_info(int samplerate, int chnnel, int bit, int bitrate);
+
+int test_mediademuxer_create();
+int test_mediademuxer_set_data_source(const char *path);
+int test_mediademuxer_prepare();
+int test_mediademuxer_get_track_count(int *track_num);
+int test_mediademuxer_select_track(int track_num);
+int test_mediademuxer_start();
+int test_mediademuxer_get_track_info(int track_num, media_format_h *format, bool *is_video, bool *is_audio);
+void test_mediademuxer_process_all(bool is_video, bool is_audio);
+
 
 /*-----------------------------------------------------------------------
 |    LOCAL FUNCTION                                                     |
@@ -183,114 +203,128 @@ int test_mediamuxer_add_track_video()
 	int avg_bps = 0;
 	int max_bps = 0;
 
-	g_print("test_mediamuxer_add_track_video\n");
-	media_format_create(&media_format);
+	if (!validate_with_demux) {
 
-	/* MEDIA_FORMAT_H264_SP  MEDIA_FORMAT_H264_MP  MEDIA_FORMAT_H264_HP */
-	if (strncmp(data_sink, "11", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation\n");
-	} else if (strncmp(data_sink, "12", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation\n");
-	}  else if (strncmp(data_sink, "13", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_MPEG4_SP) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation\n");
-	} else if (strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "23", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation\n");
-	} else if (strncmp(data_sink, "22", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
-		if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation\n");
-	} else if (strncmp(data_sink, "31", 2) == 0
-		|| strncmp(data_sink, "41", 2) == 0 || strncmp(data_sink, "42", 2) == 0
-		|| strncmp(data_sink, "51", 2) == 0) {
-		g_print("Add video track is invalid for wav/amr\n");
-		return 1;
-	}
+		g_print("test_mediamuxer_add_track_video\n");
+		media_format_create(&media_format);
 
-	if (validate_with_codec) {
-		media_format_set_video_width(media_format, width);
-		media_format_set_video_height(media_format, height);
+		/* MEDIA_FORMAT_H264_SP  MEDIA_FORMAT_H264_MP  MEDIA_FORMAT_H264_HP */
+		if (strncmp(data_sink, "11", 2) == 0) {
+			if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation\n");
+		} else if (strncmp(data_sink, "12", 2) == 0) {
+			if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation\n");
+		}  else if (strncmp(data_sink, "13", 2) == 0) {
+			if (media_format_set_video_mime(media_format, MEDIA_FORMAT_MPEG4_SP) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation\n");
+		} else if (strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "23", 2) == 0) {
+			if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H264_SP) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation\n");
+		} else if (strncmp(data_sink, "22", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
+			if (media_format_set_video_mime(media_format, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation\n");
+		} else if (strncmp(data_sink, "31", 2) == 0
+			|| strncmp(data_sink, "41", 2) == 0 || strncmp(data_sink, "42", 2) == 0
+			|| strncmp(data_sink, "51", 2) == 0) {
+			g_print("Add video track is invalid for wav/amr\n");
+			return 1;
+		}
+
+		if (validate_with_codec) {
+			media_format_set_video_width(media_format, width);
+			media_format_set_video_height(media_format, height);
+		} else {
+			media_format_set_video_width(media_format, 640);
+			media_format_set_video_height(media_format, 480);
+		}
+		media_format_set_video_avg_bps(media_format, 256000);
+		media_format_set_video_max_bps(media_format, 256000);
+
+		media_format_get_video_info(media_format, &mimetype, &width, &height, &avg_bps, &max_bps);
+
+		g_print("Video Mimetype trying to set: %x (H264 : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_H264_SP));
+		g_print("Video param trying to set: (width, height, avg_bps, max_bps): %d %d %d %d  \n",
+				width, height, avg_bps, max_bps);
+
+		/* To add video track */
+		mediamuxer_add_track(myMuxer, media_format, &track_index_vid);
+		g_print("Video Track index is returned : %d\n", track_index_vid);
 	} else {
-		media_format_set_video_width(media_format, 640);
-		media_format_set_video_height(media_format, 480);
+		mediamuxer_add_track(myMuxer, media_format, &track_index_vid);
+		g_print("Video Track index returned is: %d\n", track_index_vid);
+		test_mediademuxer_select_track(demuxer_index_vid);
 	}
-	media_format_set_video_avg_bps(media_format, 256000);
-	media_format_set_video_max_bps(media_format, 256000);
-
-	media_format_get_video_info(media_format, &mimetype, &width, &height, &avg_bps, &max_bps);
-
-	g_print("Video Mimetype trying to set: %x (H264 : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_H264_SP));
-	g_print("Video param trying to set: (width, height, avg_bps, max_bps): %d %d %d %d  \n",
-			width, height, avg_bps, max_bps);
-
-	/* To add video track */
-	mediamuxer_add_track(myMuxer, media_format, &track_index_vid);
-	g_print("Video Track index is returned : %d\n", track_index_vid);
 	return 0;
 }
 
 int test_mediamuxer_add_track_audio()
 {
 	media_format_mimetype_e mimetype;
-	int avg_bps = 128000;
 
-	g_print("test_mediamuxer_add_track_audio\n");
-	media_format_create(&media_format_a);
+	if (!validate_with_demux) {
+		int avg_bps = 128000;
 
-	if (strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0) {
-		/* MEDIA_FORMAT_AAC_LC  MEDIA_FORMAT_AAC_HE  MEDIA_FORMAT_AAC_HE_PS */
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation, for AAC in MP4\n");
-	} else if (strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation, for AAC in 3GP\n");
-	} else if (strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation for AMR_NB in 3GP\n");
-	} else if (strncmp(data_sink, "31", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_PCM) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation for PCM in WAV\n");
-	} else if (strncmp(data_sink, "41", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation for amr-nb audio\n");
-	} else if (strncmp(data_sink, "42", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_WB) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation for amr-wb audio\n");
-	} else if (strncmp(data_sink, "51", 2) == 0) {
-		if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_mime operation for aac-adts audio\n");
-	}
+		g_print("test_mediamuxer_add_track_audio\n");
+		media_format_create(&media_format_a);
 
-	if (validate_with_codec) {
-		if (media_format_set_audio_channel(media_format_a, channel) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_channel operation\n");
-		media_format_set_audio_samplerate(media_format_a, samplerate);
-		media_format_set_audio_bit(media_format_a, bit);
-		media_format_set_audio_avg_bps(media_format_a, bitrate);
+		if (strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0) {
+			/* MEDIA_FORMAT_AAC_LC  MEDIA_FORMAT_AAC_HE  MEDIA_FORMAT_AAC_HE_PS */
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation, for AAC in MP4\n");
+		} else if (strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0) {
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC_LC) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation, for AAC in 3GP\n");
+		} else if (strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "24", 2) == 0) {
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation for AMR_NB in 3GP\n");
+		} else if (strncmp(data_sink, "31", 2) == 0) {
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_PCM) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation for PCM in WAV\n");
+		} else if (strncmp(data_sink, "41", 2) == 0) {
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_NB) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation for amr-nb audio\n");
+		} else if (strncmp(data_sink, "42", 2) == 0) {
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AMR_WB) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation for amr-wb audio\n");
+		} else if (strncmp(data_sink, "51", 2) == 0) {
+			if (media_format_set_audio_mime(media_format_a, MEDIA_FORMAT_AAC) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_mime operation for aac-adts audio\n");
+		}
+
+		if (validate_with_codec) {
+			if (media_format_set_audio_channel(media_format_a, channel) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_channel operation\n");
+			media_format_set_audio_samplerate(media_format_a, samplerate);
+			media_format_set_audio_bit(media_format_a, bit);
+			media_format_set_audio_avg_bps(media_format_a, bitrate);
+		} else {
+			if (media_format_set_audio_channel(media_format_a, 2) != MEDIA_FORMAT_ERROR_NONE)
+				g_print("Problem during media_format_set_audio_channel operation\n");
+			media_format_set_audio_samplerate(media_format_a, 44100);
+			media_format_set_audio_bit(media_format_a, 16);
+			media_format_set_audio_avg_bps(media_format_a, 128000);
+		}
+
+		media_format_set_audio_aac_type(media_format_a, true);
+		media_format_get_audio_info(media_format_a, &mimetype, &channel, &samplerate, &bit, &avg_bps);
+
+		g_print("Audio Mimetype trying to set: %x (AAC : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_AAC_LC));
+		g_print("Audio Param trying to set: (ch, samplert, bt, avg_bps) %d %d %d %d \n",
+			channel, samplerate, bit, avg_bps);
+
+		/* To add audio track */
+		mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud);
+		g_print("Audio Track index returned is: %d\n", track_index_aud);
+
+		if (validate_multitrack) {
+			mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud2);
+			g_print("Audio Multi-Track index returned is: %d\n", track_index_aud2);
+		}
 	} else {
-		if (media_format_set_audio_channel(media_format_a, 2) != MEDIA_FORMAT_ERROR_NONE)
-			g_print("Problem during media_format_set_audio_channel operation\n");
-		media_format_set_audio_samplerate(media_format_a, 44100);
-		media_format_set_audio_bit(media_format_a, 16);
-		media_format_set_audio_avg_bps(media_format_a, 128000);
-	}
-
-	media_format_set_audio_aac_type(media_format_a, true);
-	media_format_get_audio_info(media_format_a, &mimetype, &channel, &samplerate, &bit, &avg_bps);
-
-	g_print("Audio Mimetype trying to set: %x (AAC : %x)\n", (int)(mimetype), (int)(MEDIA_FORMAT_AAC_LC));
-	g_print("Audio Param trying to set: (ch, samplert, bt, avg_bps) %d %d %d %d \n",
-		channel, samplerate, bit, avg_bps);
-
-	/* To add audio track */
-	mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud);
-	g_print("Audio Track index returned is: %d\n", track_index_aud);
-
-	if (validate_multitrack) {
-		mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud2);
-		g_print("Audio Multi-Track index returned is: %d\n", track_index_aud2);
+		mediamuxer_add_track(myMuxer, media_format_a, &track_index_aud);
+		g_print("Audio Track index returned is: %d\n", track_index_aud);
+		test_mediademuxer_select_track(demuxer_index_aud);
 	}
 	return 0;
 }
@@ -344,12 +378,21 @@ int test_mediamuxer_write_sample()
 	if (validate_with_codec) {
 		/* Test muxer with codec */
 		mediacodec_process_all();
+	} else if (validate_with_demux) {
+		bool sel_vid = false;
+		bool sel_aud = false;
+		test_mediademuxer_start();
+		if (track_index_vid != -1)
+			sel_vid = true;
+		if (track_index_aud != -1)
+			sel_aud = true;
+		g_print("is_video: %d, is_audio: %d\n", sel_vid, sel_aud);
+		test_mediademuxer_process_all(sel_vid, sel_aud);
 	} else if (strncmp(data_sink, "31", 2) == 0 || strncmp(data_sink, "wav", 3) == 0
 		|| strncmp(data_sink, "41", 2) == 0
 		|| strncmp(data_sink, "42", 2) == 0 || strncmp(data_sink, "amr", 3) == 0) {
 		demux_audio();
 	} else {
-
 		demux_mp4();
 	}
 	return 0;
@@ -413,6 +456,40 @@ int test_mediamuxer_set_error_cb()
 	return ret;
 }
 
+int test_mediamuxer_with_demuxer_prepare()
+{
+	int tracks_num = 0;
+	int i = 0;
+	if (test_mediademuxer_create())
+		g_print("mediademuxer create fail");
+	if (test_mediademuxer_set_data_source((const char *)media_file))
+		g_print("mediademuxer set_data_source fail");
+	if (test_mediademuxer_prepare())
+		g_print("mediademuxer prepare fail");
+	if (test_mediademuxer_get_track_count(&tracks_num))
+		g_print("mediademuxer get_track_count fail");
+	for (i = 0; i < tracks_num; i++) {
+		media_format_h format;
+		bool video = false;
+		bool audio = false;
+		test_mediademuxer_get_track_info(i, &format, &video, &audio);
+		if (video) {
+			demuxer_index_vid = i;
+			media_format = format;
+			is_video = video;
+			g_print("mediademuxer video track id = %d\n", demuxer_index_vid);
+		} else if (audio) {
+			demuxer_index_aud = i;
+			media_format_a = format;
+			is_audio = audio;
+			g_print("mediademuxer audio track id = %d\n", demuxer_index_aud);
+		}
+	}
+
+	return 0;
+
+}
+
 /*-----------------------------------------------------------------------
 |    TEST  FUNCTION                                                                 |
 -----------------------------------------------------------------------*/
@@ -456,7 +533,12 @@ void _interpret_main_menu(char *cmd)
 					have_mp4 = true;
 				}
 			}
+
+			if (validate_with_demux)
+				g_menu_state = CURRENT_STATUS_MAINMENU;
+
 			test_mediamuxer_add_track_audio();
+
 		} else if (strncmp(cmd, "v", 1) == 0) {
 			if (!validate_with_codec) {
 				if (strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0
@@ -468,11 +550,15 @@ void _interpret_main_menu(char *cmd)
 					}
 				}
 			}
+			if (validate_with_demux)
+				g_menu_state = CURRENT_STATUS_MAINMENU;
+
 			if ((strncmp(data_sink, "11", 2) == 0 || strncmp(data_sink, "12", 2) == 0 || strncmp(data_sink, "13", 2) == 0
 				|| strncmp(data_sink, "21", 2) == 0 || strncmp(data_sink, "22", 2) == 0)  || strncmp(data_sink, "23", 2) == 0 || strncmp(data_sink, "24", 2) == 0)
 				test_mediamuxer_add_track_video();
 			else
 				g_print("Ignoring, data_sink=%s doesnt need video track testing\n", data_sink);
+
 		} else if (strncmp(cmd, "x", 1) == 0) {
 			if (!validate_with_codec) {
 				have_text_track = true;
@@ -508,6 +594,11 @@ void _interpret_main_menu(char *cmd)
 		    g_menu_state = CURRENT_STATUS_RAW_AUDIO_FILENAME;
 		else if (strncmp(cmd, "ae", 2) == 0)
 		    g_menu_state = CURRENT_STATUS_SET_AENC_INFO;
+	} else if (len ==2 && validate_with_demux) {
+		if (strncmp(cmd, "mp", 2) == 0)
+			g_menu_state = CURRENT_STATUS_FILENAME;
+		else if (strncmp(cmd, "pr", 2) == 0)
+			test_mediamuxer_with_demuxer_prepare();
 	} else {
 		g_print("unknown menu command. Please try again\n");
 	}
@@ -539,6 +630,8 @@ static void displaymenu(void)
 		g_print("*** input raw audio file name");
 	} else if (g_menu_state == CURRENT_STATUS_SET_AENC_INFO) {
 		g_print("*** input audio encode configure.(samplerate, channel, bit, bitrate (e.g. 44100,  1, 32, 128000))\n");
+	} else if (g_menu_state == CURRENT_STATUS_FILENAME) {
+		g_print("*** input file path:\n");
 	} else {
 		g_print("*** unknown status.\n");
 		exit(0);
@@ -610,8 +703,6 @@ static void interpret(char *cmd)
 			break;
 		}
 	}
-	break;
-
 	case CURRENT_STATUS_RAW_AUDIO_FILENAME:
 		{	/* "ca" */
 			use_video = 0;
@@ -653,6 +744,12 @@ static void interpret(char *cmd)
 			}
 		}
 		break;
+	case CURRENT_STATUS_FILENAME: { /* mp */
+			input_filepath(cmd);
+			strncpy(media_file, cmd, MAX_INPUT_SIZE - 1);
+			g_menu_state = CURRENT_STATUS_MAINMENU;
+			break;
+		}
 	default:
 		break;
 	}
@@ -671,6 +768,11 @@ static void display_sub_basic()
 		g_print("ve. Set venc info \n");
 		g_print("ca. Create Media Codec for Audio\t");
 		g_print("ae. Set aenc info \n");
+	}
+	if (validate_with_demux) {
+		g_print("--To test Muxer along with Media Demuxer. --\n");
+		g_print("mp. set media path with demuxer \n");
+		g_print("pr. Prepare mediademuxer \n");
 	}
 	g_print("c. Create \t");
 	g_print("o. Set Data Sink \n");
@@ -732,8 +834,10 @@ int main(int argc, char *argv[])
 		/* Check whether validation with media codec is required */
 		if (argv[1][0] == '-' && argv[1][1] == 'c')
 			validate_with_codec = true;
-		if (argv[1][0] == '-' && argv[1][1] == 'm')
+		else if (argv[1][0] == '-' && argv[1][1] == 'm')
 			validate_multitrack = true;
+		else if (argv[1][0] == '-' && argv[1][1] == 'd')
+			validate_with_demux = true;
 	}
 
 	displaymenu();

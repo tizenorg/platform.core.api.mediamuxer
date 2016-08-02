@@ -17,10 +17,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dlog.h>
+
 #include <mediamuxer_port.h>
 #include <mediamuxer.h>
 #include <mediamuxer_private.h>
-#include <dlog.h>
 
 #ifndef USE_TASK_QUEUE
 #define USE_TASK_QUEUE
@@ -38,7 +39,7 @@ int mediamuxer_create(mediamuxer_h *muxer)
 	MUXER_INSTANCE_CHECK(muxer);
 
 	mediamuxer_s *handle;
-	handle = (mediamuxer_s *) malloc(sizeof(mediamuxer_s));
+	handle = (mediamuxer_s *)g_malloc(sizeof(mediamuxer_s));
 	if (handle != NULL) {
 		memset(handle, 0, sizeof(mediamuxer_s));
 		handle->muxer_state = MEDIAMUXER_STATE_NONE;
@@ -52,11 +53,11 @@ int mediamuxer_create(mediamuxer_h *muxer)
 	if (ret != MEDIAMUXER_ERROR_NONE) {
 		MX_E("[CoreAPI][%s] MUXER_ERROR_INVALID_OPERATION(0x%08x)\n",
 		     __FUNCTION__, MEDIAMUXER_ERROR_INVALID_OPERATION);
-		free(handle);
+		g_free(handle);
 		handle = NULL;
 		return MEDIAMUXER_ERROR_INVALID_OPERATION;
 	} else {
-		*muxer = (mediamuxer_h) handle;
+		*muxer = (mediamuxer_h)handle;
 		handle->is_stopped = false;
 		MX_I("[CoreAPI][%s] new handle : %p", __FUNCTION__, *muxer);
 

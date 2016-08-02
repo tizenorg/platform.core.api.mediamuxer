@@ -40,8 +40,8 @@ static int gst_muxer_resume(MMHandleType pHandle);
 static int gst_muxer_stop(MMHandleType pHandle);
 static int gst_muxer_unprepare(MMHandleType pHandle);
 static int gst_muxer_destroy(MMHandleType pHandle);
-static int gst_set_error_cb(MMHandleType pHandle,
-			gst_error_cb callback, void* user_data);
+static int gst_muxer_set_error_cb(MMHandleType pHandle,
+			gst_muxer_error_cb callback, void* user_data);
 
 /* Media Muxer API common */
 static media_port_muxer_ops def_mux_ops = {
@@ -58,7 +58,7 @@ static media_port_muxer_ops def_mux_ops = {
 	.stop = gst_muxer_stop,
 	.unprepare = gst_muxer_unprepare,
 	.destroy = gst_muxer_destroy,
-	.set_error_cb = gst_set_error_cb,
+	.set_error_cb = gst_muxer_set_error_cb,
 };
 
 int gst_mediamuxer_port_register(media_port_muxer_ops *pOps)
@@ -102,6 +102,9 @@ static int gst_muxer_init(MMHandleType *pHandle)
 
 	new_mediamuxer->eos_flg = false;
 	*pHandle = (MMHandleType) new_mediamuxer;
+
+	gst_init(NULL, NULL);
+
 	MEDIAMUXER_FLEAVE();
 	return ret;
 ERROR:
@@ -121,6 +124,257 @@ static int gst_muxer_set_data_sink(MMHandleType pHandle,
 	/* Set desired parameters */
 	mx_handle_gst->output_uri = uri;
 	mx_handle_gst->muxed_format = format;
+	MEDIAMUXER_FLEAVE();
+	return ret;
+}
+
+static GstCaps * __gst_codec_specific_caps(media_format_mimetype_e mimetype)
+{
+	MEDIAMUXER_FENTER();
+	GstCaps *new_caps = NULL;
+	switch (mimetype) {
+	/* video */
+	case MEDIA_FORMAT_H261:
+		break;
+	case MEDIA_FORMAT_H263:
+	case MEDIA_FORMAT_H263P:
+		new_caps = gst_caps_new_simple("video/x-h263",
+			"variant", G_TYPE_STRING, "itu", NULL);
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_H264_SP:
+	case MEDIA_FORMAT_H264_MP:
+	case MEDIA_FORMAT_H264_HP:
+		new_caps = gst_caps_new_simple("video/x-h264",
+			"stream-format", G_TYPE_STRING, "byte-stream", NULL);
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_MJPEG:
+		break;
+	case MEDIA_FORMAT_MPEG1:
+		break;
+	case MEDIA_FORMAT_MPEG2_SP:
+		break;
+	case MEDIA_FORMAT_MPEG2_MP:
+		break;
+	case MEDIA_FORMAT_MPEG2_HP:
+		break;
+	case MEDIA_FORMAT_MPEG4_SP:
+		new_caps = gst_caps_new_simple("video/mpeg",
+			"mpegversion", G_TYPE_INT, 4, "systemstream", G_TYPE_BOOLEAN, false,
+			NULL);
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+		break;
+	case MEDIA_FORMAT_MPEG4_ASP:
+		break;
+	case MEDIA_FORMAT_HEVC:
+		break;
+	case MEDIA_FORMAT_VP8:
+		break;
+	case MEDIA_FORMAT_VP9:
+		break;
+	case MEDIA_FORMAT_VC1:
+		break;
+	case MEDIA_FORMAT_I420:
+		break;
+	case MEDIA_FORMAT_NV12:
+		break;
+	case MEDIA_FORMAT_NV12T:
+		break;
+	case MEDIA_FORMAT_YV12:
+		break;
+	case MEDIA_FORMAT_NV21:
+		break;
+	case MEDIA_FORMAT_NV16:
+		break;
+	case MEDIA_FORMAT_YUYV:
+		break;
+	case MEDIA_FORMAT_UYVY:
+		break;
+	case MEDIA_FORMAT_422P:
+		break;
+	case MEDIA_FORMAT_RGB565:
+		break;
+	case MEDIA_FORMAT_RGB888:
+		break;
+	case MEDIA_FORMAT_RGBA:
+		break;
+	case MEDIA_FORMAT_ARGB:
+		break;
+		/* audio */
+	case MEDIA_FORMAT_L16:
+		break;
+	case MEDIA_FORMAT_ALAW:
+		break;
+	case MEDIA_FORMAT_ULAW:
+		break;
+	case MEDIA_FORMAT_AMR_NB:
+		new_caps = gst_caps_new_empty_simple("audio/x-amr-nb-sh");
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_AMR_WB:
+		new_caps = gst_caps_new_empty_simple("audio/x-amr-wb-sh");
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_G729:
+		break;
+	case MEDIA_FORMAT_AAC_LC:
+		new_caps = gst_caps_new_simple("audio/mpeg",
+			"mpegversion", G_TYPE_INT, 4, NULL);
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_AAC_HE:
+		new_caps = gst_caps_new_simple("audio/mpeg",
+			"mpegversion", G_TYPE_INT, 4, NULL);
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_AAC_HE_PS:
+		new_caps = gst_caps_new_simple("audio/mpeg",
+			"mpegversion", G_TYPE_INT, 4, NULL);
+		if (!new_caps) {
+			MX_E("Fail to make simple caps");
+			return NULL;
+		}
+		break;
+	case MEDIA_FORMAT_MP3:
+		break;
+	case MEDIA_FORMAT_VORBIS:
+		break;
+	case MEDIA_FORMAT_PCM:
+		break;
+	case MEDIA_FORMAT_PCMA:
+		break;
+	case MEDIA_FORMAT_PCMU:
+		break;
+	default:
+		MX_E("Unknown media mimeype %d. Assuming H264\n", mimetype);
+		break;
+	}
+	MEDIAMUXER_FLEAVE();
+	return new_caps;
+}
+
+int _gst_set_caps(MMHandleType pHandle, media_format_h format, int track_index)
+{
+	MEDIAMUXER_FENTER();
+	gint ret = MX_ERROR_NONE;
+	GstCaps *new_caps;
+	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
+	media_format_type_e formattype;
+	mx_gst_track *current = NULL;
+//	media_format_mimetype_e track_mime;
+	media_format_mimetype_e current_mime;
+
+	/* Reach that track index and set the codec data */
+	for (current = gst_handle->track_info.track_head; current; current = current->next)
+		if (current->track_index == track_index)
+			break;
+
+	if ((!current) || (current->track_index != track_index)) {
+		ret = MX_ERROR_COMMON_INVALID_ARGUMENT;
+		goto ERROR;
+	}
+
+	if (media_format_get_type(format, &formattype)) {
+		MX_E("media_format_get_type failed\n");
+		goto ERROR;
+	}
+
+	switch (formattype) {
+	case MEDIA_FORMAT_AUDIO:
+		/* Following check is safe but not mandatory. */
+		if ((current->track_index)%NO_OF_TRACK_TYPES != 1) {
+			MX_E("This is not an audio track_index. Track_index is not in 3*n+1 format\n");
+			goto ERROR;
+		}
+
+		/* return if track_mime is different to current_mime */
+		if (media_format_get_audio_info(format, &current_mime, NULL, NULL, NULL, NULL)
+				!= MEDIA_FORMAT_ERROR_NONE) {
+			MX_E("cant read audio mime in packet. returning\n");
+			return MX_ERROR_INVALID_ARGUMENT;
+		}
+
+		if (current->caps == NULL) {
+
+			new_caps = __gst_codec_specific_caps(current_mime);
+
+			if (new_caps == NULL) {
+				MX_E("Setting Audio caps failed\n");
+				ret = MX_ERROR_UNKNOWN;
+				break;
+			}
+			gchar *caps_string = NULL;
+			caps_string = gst_caps_to_string(new_caps);
+			MX_I("New cap is = %s\n", caps_string);
+			if (caps_string)
+				g_free(caps_string);
+			current->caps = new_caps;
+		}
+		break;
+	case MEDIA_FORMAT_VIDEO:
+		/* Following check is safe but not mandatory. */
+		if ((current->track_index)%NO_OF_TRACK_TYPES != 0) {
+			MX_E("This is not an video track_index. Video track_index is not in 3*n format\n");
+			goto ERROR;
+		}
+
+		/* return if track_mime is different to current_mime */
+		if (media_format_get_video_info(format, &current_mime, NULL, NULL, NULL, NULL)
+				!= MEDIA_FORMAT_ERROR_NONE) {
+			MX_E("cant read video mime. returning\n");
+			return MX_ERROR_INVALID_ARGUMENT;
+		}
+
+		if (current->caps == NULL) {
+
+			new_caps = __gst_codec_specific_caps(current_mime);
+
+			if (new_caps == NULL) {
+				MX_E("Setting Audio caps failed\n");
+				ret = MX_ERROR_UNKNOWN;
+				break;
+			}
+			gchar *caps_string = NULL;
+			caps_string = gst_caps_to_string(new_caps);
+			MX_I("New cap is = %s\n", caps_string);
+			if (caps_string)
+				g_free(caps_string);
+			current->caps = new_caps;
+		}
+		break;
+
+	case MEDIA_FORMAT_CONTAINER:
+	case MEDIA_FORMAT_UNKNOWN:
+	default:
+		MX_E("Unknown format type\n");
+	}
+	MEDIAMUXER_FLEAVE();
+	return ret;
+ERROR:
+	ret = MX_ERROR_UNKNOWN;
 	MEDIAMUXER_FLEAVE();
 	return ret;
 }
@@ -230,6 +484,11 @@ static int gst_muxer_add_track(MMHandleType pHandle,
 
 	} else {
 		MX_E("Unsupported A/V/Subs MIME Type: %x\n", mimetype);
+	}
+	ret = _gst_set_caps(mx_handle_gst, media_format, *track_index);
+	if (ret != MX_ERROR_NONE) {
+		MX_E("Set caps error");
+		return ret;
 	}
 	MEDIAMUXER_FLEAVE();
 	return ret;
@@ -346,7 +605,8 @@ static gboolean _mx_gst_bus_call(GstBus *bus, GstMessage *msg, gpointer data)
 				else
 					MX_I("Unknown GStreamer callback error\n");
 				/* Update the user callback with ret value */
-				((gst_error_cb)gst_handle->user_cb[_GST_EVENT_TYPE_ERROR])(error_val, (void*)error->message);
+				((gst_muxer_error_cb)gst_handle->user_cb[_GST_EVENT_TYPE_ERROR])
+					(error_val, gst_handle->user_data[_GST_EVENT_TYPE_ERROR]);
 
 				return ret;
 			}
@@ -452,7 +712,6 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 
 	/* Initialize GStreamer */
 	/* Note: Replace the arguments of gst_init to pass the command line args to GStreamer. */
-	gst_init(NULL, NULL);
 
 	/* Create the empty pipeline */
 	gst_handle->pipeline = gst_pipeline_new("Muxer Gst pipeline");
@@ -471,7 +730,7 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 		goto ERROR;
 	} else {
 		if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_MP4)
-			gst_handle->muxer = gst_element_factory_make("qtmux", "qtmux");
+			gst_handle->muxer = gst_element_factory_make("mp4mux", "mp4mux");
 			/* gst_element_factory_make("mp4mux", "mp4mux"); */
 		else if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_3GP)
 			gst_handle->muxer = gst_element_factory_make("3gppmux", "3gppmux");
@@ -540,6 +799,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
 						GST_APP_STREAM_TYPE_STREAM);
 #endif
+					if (current->caps)
+						g_object_set(current->appsrc, "caps", current->caps, NULL);
+
 					gst_element_link(current->appsrc, current->parser);
 
 					/* Link videoparse to muxer_video_pad.   Request for muxer A/V pads. */
@@ -613,6 +875,9 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_app_src_set_stream_type((GstAppSrc *)current->appsrc,
 						GST_APP_STREAM_TYPE_STREAM);
 #endif
+					if (current->caps)
+						g_object_set(current->appsrc, "caps", current->caps, NULL);
+
 					/* For wav, wavenc is muxer */
 					if (gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_WAV
 						|| gst_handle->muxed_format == MEDIAMUXER_CONTAINER_FORMAT_AAC_ADTS
@@ -656,7 +921,8 @@ mx_ret_e _gst_create_pipeline(mxgst_handle_t *gst_handle)
 					gst_bin_add_many(GST_BIN(gst_handle->pipeline), current->appsrc, NULL);
 
 					/* Set subtitle_caps for corresponding src elements */
-					g_object_set(current->appsrc, "caps", gst_caps_from_string(current->caps), NULL);
+					if (current->caps)
+						g_object_set(current->appsrc, "caps", current->caps, NULL);
 					g_object_set(current->appsrc, "format", GST_FORMAT_TIME, NULL);
 
 #ifdef ASYCHRONOUS_WRITE
@@ -756,447 +1022,6 @@ STATE_CHANGE_FAILED:
 	return ret;
 }
 
-int __gst_codec_specific_caps(GstCaps *new_cap,
-				media_format_mimetype_e mimetype)
-{
-	MEDIAMUXER_FENTER();
-	GValue val = G_VALUE_INIT;
-	switch (mimetype) {
-	/* video */
-	case MEDIA_FORMAT_H261:
-		break;
-	case MEDIA_FORMAT_H263:
-		break;
-	case MEDIA_FORMAT_H263P:
-		break;
-	case MEDIA_FORMAT_H264_SP:
-		break;
-	case MEDIA_FORMAT_H264_MP:
-		break;
-	case MEDIA_FORMAT_H264_HP:
-		break;
-	case MEDIA_FORMAT_MJPEG:
-		break;
-	case MEDIA_FORMAT_MPEG1:
-		break;
-	case MEDIA_FORMAT_MPEG2_SP:
-		break;
-	case MEDIA_FORMAT_MPEG2_MP:
-		break;
-	case MEDIA_FORMAT_MPEG2_HP:
-		break;
-	case MEDIA_FORMAT_MPEG4_SP:
-		break;
-	case MEDIA_FORMAT_MPEG4_ASP:
-		break;
-	case MEDIA_FORMAT_HEVC:
-		break;
-	case MEDIA_FORMAT_VP8:
-		break;
-	case MEDIA_FORMAT_VP9:
-		break;
-	case MEDIA_FORMAT_VC1:
-		break;
-	case MEDIA_FORMAT_I420:
-		break;
-	case MEDIA_FORMAT_NV12:
-		break;
-	case MEDIA_FORMAT_NV12T:
-		break;
-	case MEDIA_FORMAT_YV12:
-		break;
-	case MEDIA_FORMAT_NV21:
-		break;
-	case MEDIA_FORMAT_NV16:
-		break;
-	case MEDIA_FORMAT_YUYV:
-		break;
-	case MEDIA_FORMAT_UYVY:
-		break;
-	case MEDIA_FORMAT_422P:
-		break;
-	case MEDIA_FORMAT_RGB565:
-		break;
-	case MEDIA_FORMAT_RGB888:
-		break;
-	case MEDIA_FORMAT_RGBA:
-		break;
-	case MEDIA_FORMAT_ARGB:
-		break;
-		/* audio */
-	case MEDIA_FORMAT_L16:
-		break;
-	case MEDIA_FORMAT_ALAW:
-		break;
-	case MEDIA_FORMAT_ULAW:
-		break;
-	case MEDIA_FORMAT_AMR_NB:
-		break;
-	case MEDIA_FORMAT_AMR_WB:
-		break;
-	case MEDIA_FORMAT_G729:
-		break;
-	case MEDIA_FORMAT_AAC_LC:
-		g_value_init(&val, G_TYPE_INT);
-		g_value_set_int(&val, 4);
-		gst_caps_set_value(new_cap, "mpegversion", &val);
-		break;
-	case MEDIA_FORMAT_AAC_HE:
-		g_value_init(&val, G_TYPE_INT);
-		g_value_set_int(&val, 4);
-		gst_caps_set_value(new_cap, "mpegversion", &val);
-		break;
-	case MEDIA_FORMAT_AAC_HE_PS:
-		g_value_init(&val, G_TYPE_INT);
-		g_value_set_int(&val, 4);
-		gst_caps_set_value(new_cap, "mpegversion", &val);
-		break;
-	case MEDIA_FORMAT_MP3:
-		break;
-	case MEDIA_FORMAT_VORBIS:
-		break;
-	case MEDIA_FORMAT_PCM:
-		break;
-	case MEDIA_FORMAT_PCMA:
-		break;
-	case MEDIA_FORMAT_PCMU:
-		break;
-	default:
-		MX_E("Unknown media mimeype %d. Assuming H264\n", mimetype);
-		break;
-	}
-	MEDIAMUXER_FLEAVE();
-	return 0;
-}
-
-
-int _gst_set_caps(MMHandleType pHandle, media_packet_h packet, int track_index)
-{
-	MEDIAMUXER_FENTER();
-	gint ret = MX_ERROR_NONE;
-	GstCaps *new_cap;
-	media_format_h format;
-	mxgst_handle_t *gst_handle = (mxgst_handle_t *) pHandle;
-	media_format_type_e formattype;
-	char *codec_data;
-	unsigned int codec_data_size;
-	mx_gst_track *current = NULL;
-	media_format_mimetype_e track_mime;
-	media_format_mimetype_e current_mime;
-
-	/* Reach that track index and set the codec data */
-	for (current = gst_handle->track_info.track_head; current; current = current->next)
-		if (current->track_index == track_index)
-			break;
-
-	if ((!current) || (current->track_index != track_index)) {
-		ret = MX_ERROR_COMMON_INVALID_ARGUMENT;
-		goto ERROR;
-	}
-
-	if (media_packet_get_format(packet, &format)) {
-		MX_E("media_format_get_formati call failed \n");
-		goto ERROR;
-	}
-
-	if (media_format_get_type(format, &formattype)) {
-		MX_E("media_format_get_type failed\n");
-		goto ERROR;
-	}
-
-	switch (formattype) {
-	case MEDIA_FORMAT_AUDIO:
-		/* Following check is safe but not mandatory. */
-		if ((current->track_index)%NO_OF_TRACK_TYPES != 1) {
-			MX_E("This is not an audio track_index. Track_index is not in 3*n+1 format\n");
-			goto ERROR;
-		}
-
-		/* return if track_mime is different to current_mime */
-		if (media_format_get_audio_info((media_format_h)(current->media_format), &track_mime, NULL, NULL, NULL, NULL)
-			== MEDIA_FORMAT_ERROR_NONE) {
-			if (media_format_get_audio_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
-				== MEDIA_FORMAT_ERROR_NONE) {
-				if (track_mime != current_mime) {
-					MX_E("audio track_mime is not matching with packet mime. returning\n");
-					return MX_ERROR_INVALID_ARGUMENT;
-				}
-			} else {
-				MX_E("cant read audio mime in packet. returning\n");
-				return MX_ERROR_INVALID_ARGUMENT;
-			}
-		} else {
-			MX_E("cant read audio mime, set during add_track. returning\n");
-			return MX_ERROR_INVALID_ARGUMENT;
-		}
-
-		if (media_packet_get_extra(packet,
-				(void **)&codec_data)) {
-			MX_E("media_packet_get_extra call failed\n");
-			ret = MX_ERROR_UNKNOWN;
-			break;
-		}
-		codec_data_size = strlen(codec_data) + 1;
-
-		if ((strlen(codec_data)+1) != codec_data_size) {
-			MX_E("strlen(codec_data)+1 is not matching with codec_data_size. They are supposed to be equal.\n");
-			return MX_ERROR_INVALID_ARGUMENT;
-		}
-		MX_I("Extracted codec data is =%s size is %d\n", codec_data, codec_data_size);
-
-		if (current->caps == NULL ||
-			g_strcmp0(codec_data, current->caps) != 0) {
-
-#ifdef SEND_FULL_CAPS_VIA_CODEC_DATA
-			/* Debugging purpose. The whole caps filter can be sent via codec_data */
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("codec  cap is=%s\n", codec_data);
-			g_object_set(current->appsrc, "caps", new_cap, NULL);
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					gst_caps_unref(new_cap);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			g_stpcpy(current->caps, codec_data);
-#else
-			gchar *caps_string = NULL;
-			int channel = 0;
-			int samplerate = 0;
-			int bit = 0;
-			int avg_bps = 0;
-			media_format_mimetype_e mimetype = MEDIA_FORMAT_MAX;
-			if (media_format_get_audio_info(format,
-				&mimetype, &channel, &samplerate,
-				&bit, &avg_bps)) {
-				MX_E("media_format_get_audio_info call failed\n");
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d]memory allocation failed\n", __func__, __LINE__);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			new_cap = gst_caps_from_string(codec_data);
-			if (__gst_codec_specific_caps(new_cap, mimetype)) {
-				MX_E("Setting Audio caps failed\n");
-				gst_caps_unref(new_cap);
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			caps_string = gst_caps_to_string(new_cap);
-			MX_I("New cap set by codec data is = %s\n",
-			     caps_string);
-			if (caps_string)
-				g_free(caps_string);
-			g_object_set(current->appsrc, "caps", new_cap, NULL);
-			MX_I("copying   current->caps = codec_data\n");
-			g_stpcpy(current->caps, codec_data);
-#endif
-			gst_caps_unref(new_cap);
-		}
-		break;
-	case MEDIA_FORMAT_VIDEO:
-		/* Following check is safe but not mandatory. */
-		if ((current->track_index)%NO_OF_TRACK_TYPES != 0) {
-			MX_E("This is not an video track_index. Video track_index is not in 3*n format\n");
-			goto ERROR;
-		}
-
-		/* return if track_mime is different to current_mime */
-		if (media_format_get_video_info((media_format_h)(current->media_format), &track_mime, NULL, NULL, NULL, NULL)
-			== MEDIA_FORMAT_ERROR_NONE) {
-			if (media_format_get_video_info((media_format_h)(format), &current_mime, NULL, NULL, NULL, NULL)
-				== MEDIA_FORMAT_ERROR_NONE) {
-				if (track_mime != current_mime) {
-					MX_E("video track_mime is not matching with packet mime. returning\n");
-					return MX_ERROR_INVALID_ARGUMENT;
-				}
-			} else {
-				MX_E("cant read video mime. returning\n");
-				return MX_ERROR_INVALID_ARGUMENT;
-			}
-		} else {
-			MX_E("cant read video mime in packet. returning\n");
-			return MX_ERROR_INVALID_ARGUMENT;
-		}
-
-		if (media_packet_get_extra(packet,
-			(void **)&codec_data)) {
-			MX_E("media_packet_get_extra call failed\n");
-			ret = MX_ERROR_UNKNOWN;
-			break;
-		}
-		codec_data_size = strlen(codec_data) + 1;
-
-		if ((strlen(codec_data)+1) != codec_data_size) {
-			MX_E("strlen(codec_data)+1 is not matching with codec_data_size. They are supposed to be equal.\n");
-			return MX_ERROR_INVALID_ARGUMENT;
-		}
-		MX_I("codec data is =%s size is %d\n", codec_data, codec_data_size);
-		if (current->caps == NULL ||
-		    g_strcmp0(codec_data, current->caps) != 0) {
-#ifdef SEND_FULL_CAPS_VIA_CODEC_DATA
-			/* Debugging purpose. The whole caps filter can be sent via codec_data */
-			codec_data_size = strlen(codec_data) + 1;
-			MX_I("extracted codec data is =%s\n", codec_data);
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("New cap is=%s\n", codec_data);
-			g_object_set(current->appsrc, "caps", new_cap, NULL);
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					gst_caps_unref(new_cap);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			g_stpcpy(current->caps, codec_data);
-#else
-			 gchar *caps_string = NULL;
-			GValue val = G_VALUE_INIT;
-			int numerator = 1;
-			int denominator = 1;
-			int width = 0;
-			int height = 0;
-			int avg_bps = 0;
-			int max_bps = 0;
-			media_format_mimetype_e mimetype = MEDIA_FORMAT_MAX;
-
-			if (media_format_get_video_info(format,
-				&mimetype, &width, &height,
-				&avg_bps, &max_bps)) {
-				MX_E("media_format_get_video_info call failed\n");
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("New cap set by codec data is=%s\n", codec_data);
-			if (__gst_codec_specific_caps(new_cap, mimetype)) {
-				MX_E("Setting Video caps failed\n");
-				gst_caps_unref(new_cap);
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			g_stpcpy(current->caps, codec_data);
-
-			if (media_format_get_video_frame_rate(format, &numerator))
-				MX_E("media_format_get_video_info call failed\n");
-			g_value_init(&val, GST_TYPE_FRACTION);
-			gst_value_set_fraction(&val, numerator, denominator);
-			gst_caps_set_value(new_cap, "framerate", &val);
-			caps_string = gst_caps_to_string(new_cap);
-			MX_I("New cap set by codec data is = %s\n",
-			     caps_string);
-			if (caps_string)
-				g_free(caps_string);
-			g_object_set(current->appsrc, "caps", new_cap, NULL);
-#endif
-			gst_caps_unref(new_cap);
-		}
-		break;
-	case MEDIA_FORMAT_TEXT:
-		/* Following check is safe but not mandatory. */
-		if ((current->track_index)%NO_OF_TRACK_TYPES != 2) {
-			MX_E("Subtitle track_index is not in 3*n+2 format\n");
-			goto ERROR;
-		}
-		if (media_packet_get_codec_data(packet,
-			(void **)&codec_data, &codec_data_size)) {
-			MX_E("media_packet_get_codec_data call failed\n");
-			ret = MX_ERROR_UNKNOWN;
-			break;
-		}
-		MX_I("codec data for subtitle = %s size is %d\n", codec_data, codec_data_size);
-		if (current->caps == NULL ||
-		    g_strcmp0(codec_data, current->caps) != 0) {
-
-#ifdef SEND_FULL_CAPS_VIA_CODEC_DATA
-			/* Debugging purpose. The whole caps filter can be sent via codec_data */
-			media_packet_get_codec_data(packet, (void **)&codec_data,
-						&codec_data_size);
-			MX_I("extracted codec data is =%s\n", codec_data);
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("New cap is=%s\n", codec_data);
-			g_object_set(current->appsrc, "caps", new_cap, NULL);
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					gst_caps_unref(new_cap);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			g_stpcpy(current->caps, codec_data);
-#else
-		media_format_mimetype_e mimetype = -1;
-		media_format_text_type_e text_type_e = -1;
-		if (media_format_get_text_info(format,
-				&mimetype, &text_type)) {
-				MX_E("media_format_get_text_info call failed\n");
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			if (current->caps == NULL) {
-				current->caps = (char *)g_malloc(codec_data_size);
-				if (current->caps == NULL) {
-					MX_E("[%s][%d] memory allocation failed\n", __func__, __LINE__);
-					ret = MX_ERROR_UNKNOWN;
-					break;
-				}
-			}
-			new_cap = gst_caps_from_string(codec_data);
-			MX_I("New cap set by codec data is=%s\n", codec_data);
-			if (__gst_codec_specific_caps(new_cap, mimetype)) {
-				MX_E("Setting Subtitle caps failed\n");
-				gst_caps_unref(new_cap);
-				ret = MX_ERROR_UNKNOWN;
-				break;
-			}
-			g_stpcpy(current->caps, codec_data);
-			caps_string = gst_caps_to_string(new_cap);
-			MX_I("New cap set by codec data is = %s\n",
-			     caps_string);
-			if (caps_string)
-				g_free(caps_string);
-			g_object_set(current->appsrc, "caps", new_cap, NULL);
-#endif
-			gst_caps_unref(new_cap);
-		} else if (current != NULL) {
-			MX_I("appsrc caps already set to %s\n", current->caps);
-		}
-		break;
-
-	case MEDIA_FORMAT_CONTAINER:
-	case MEDIA_FORMAT_UNKNOWN:
-	default:
-		MX_E("Unknown format type\n");
-	}
-	MEDIAMUXER_FLEAVE();
-	return ret;
-ERROR:
-	ret = MX_ERROR_UNKNOWN;
-	MEDIAMUXER_FLEAVE();
-	return ret;
-}
-
 static int _gst_copy_media_packet_to_buf(media_packet_h out_pkt,
 						GstBuffer *buffer)
 {
@@ -1289,11 +1114,6 @@ static int gst_muxer_write_sample(MMHandleType pHandle, int track_index,
 				MX_E("ext=%p\tnext->track_index=%d\n", gst_handle->track_info.track_head->next, gst_handle->track_info.track_head->next->track_index);
 		} else
 			MX_E("\n\n****Head is NULL****\n");
-		ret = MX_ERROR_INVALID_ARGUMENT;
-		goto ERROR;
-	}
-
-	if (_gst_set_caps(pHandle, inbuf, track_index) != MX_ERROR_NONE) {
 		ret = MX_ERROR_INVALID_ARGUMENT;
 		goto ERROR;
 	}
@@ -1528,7 +1348,7 @@ static int gst_muxer_destroy(MMHandleType pHandle)
 	return ret;
 }
 
-int gst_set_error_cb(MMHandleType pHandle, gst_error_cb callback, void* user_data)
+int gst_muxer_set_error_cb(MMHandleType pHandle, gst_muxer_error_cb callback, void* user_data)
 {
 	MEDIAMUXER_FENTER();
 	int ret = MX_ERROR_NONE;
@@ -1553,7 +1373,7 @@ int gst_set_error_cb(MMHandleType pHandle, gst_error_cb callback, void* user_dat
 	}
 
 	MX_I("Set event handler callback(cb = %p, data = %p)\n", callback, user_data);
-	gst_handle->user_cb[_GST_EVENT_TYPE_ERROR] = (gst_error_cb) callback;
+	gst_handle->user_cb[_GST_EVENT_TYPE_ERROR] = (gst_muxer_error_cb) callback;
 	gst_handle->user_data[_GST_EVENT_TYPE_ERROR] = user_data;
 	MEDIAMUXER_FLEAVE();
 	return MX_ERROR_NONE;

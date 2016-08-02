@@ -18,6 +18,7 @@ BuildRequires:  pkgconfig(gstreamer-video-1.0)
 BuildRequires:  pkgconfig(gstreamer-app-1.0)
 BuildRequires:  pkgconfig(iniparser)
 BuildRequires:  pkgconfig(capi-media-codec)
+BuildRequires:  pkgconfig(capi-mediademuxer)
 
 %description
 
